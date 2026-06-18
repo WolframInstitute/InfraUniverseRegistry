@@ -14,7 +14,7 @@ headerTips = <|"Rule" -> "Rule Name", "State" -> "Final State", "Gen" -> "Final 
    "Diameter Growth" -> "Diameter growth rate per generation (0 static, + expanding, - shrinking)",
    "Graph Dim" -> "Final Graph Dimension = log V / log D", "Ball Dim" -> "Final Ball Growth Dimension",
    "Ball Curv" -> "Final Ball Growth Curvature", "Stability" -> "Stability Score (higher = more converged)",
-   "V(n)" -> "Vertex count per iteration", "D(n)" -> "Graph diameter per iteration",
+   "Vertices/gen" -> "Vertex count per iteration", "Diameter/gen" -> "Graph diameter per iteration",
    "Volume Growth" -> "Ball Volume Growth per iteration", "Log Diff Q" -> "Log Difference Quotients q(r)",
    "Dimensions" -> "Ball growth dimension per iteration", "Curvatures" -> "Ball growth curvature per iteration"|>;
 row[id_] := With[{r = table[id]}, <|"Rule" -> Hyperlink[id, url[id]], "State" -> r["StateThumb"],
@@ -22,16 +22,22 @@ row[id_] := With[{r = table[id]}, <|"Rule" -> Hyperlink[id, url[id]], "State" ->
    "Vertex Growth" -> rnd[r["VertexGrowth"], 0.1], "Diameter Growth" -> rnd[r["DiameterGrowth"], 0.01],
    "Graph Dim" -> rnd[r["GraphDimension"], 0.01], "Ball Dim" -> ar[r["Dimension"], r["DimensionError"]],
    "Ball Curv" -> ar[r["Curvature"], r["CurvatureError"]], "Stability" -> rnd[r["StabilityScore"], 0.001],
-   "V(n)" -> r["VertexThumb"], "D(n)" -> r["DiameterThumb"], "Volume Growth" -> r["VolumeThumb"],
+   "Vertices/gen" -> r["VertexThumb"], "Diameter/gen" -> r["DiameterThumb"], "Volume Growth" -> r["VolumeThumb"],
    "Log Diff Q" -> r["LDQThumb"], "Dimensions" -> r["DimThumb"], "Curvatures" -> r["CurvThumb"]|>];
-cols = {"Rule", "State", "Gen", "Vertices", "Edges", "Diameter", "Vertex Growth", "Diameter Growth",
-   "Graph Dim", "Ball Dim", "Ball Curv", "Stability", "V(n)", "D(n)", "Volume Growth", "Log Diff Q", "Dimensions", "Curvatures"};
+cols = {"Rule", "State", "Gen", "Edges", "Vertices", "Vertex Growth", "Vertices/gen",
+   "Diameter", "Diameter Growth", "Diameter/gen", "Graph Dim", "Ball Dim", "Dimensions",
+   "Ball Curv", "Curvatures", "Volume Growth", "Log Diff Q", "Stability"};
 tableOf[ids_] := Dataset[(KeyTake[row[#], cols]) & /@ ids, Alignment -> {Center, Center}, MaxItems -> {25, All},
    ItemStyle -> {FontSize -> 13}, HeaderStyle -> Directive[FontSize -> 13, Bold], HeaderDisplayFunction -> (Tooltip[#, Lookup[headerTips, #, #]] &)];
-landscape := Module[{pts = Select[{#["Dimension"], #["Curvature"], #["StabilityScore"]} & /@ Values[table], VectorQ[#, NumericQ] &]},
-   Legended[Graphics[{PointSize[0.008], Point[pts[[All, {1, 2}]], VertexColors -> (Blend[{StandardRed, StandardGreen}, #] & /@ pts[[All, 3]])]},
-      Frame -> True, FrameLabel -> {"dimension", "curvature"}, Background -> White, ImageSize -> 620, AspectRatio -> 1/GoldenRatio,
-      PlotLabel -> "Dimension-Curvature landscape of all " <> ToString[Length[pts]] <> " rules (color = stability)"],
+landscape := Module[{pts, ds, cs},
+   pts = Select[{#1, #2["Dimension"], #2["Curvature"], #2["StabilityScore"]} & @@@ Normal[table],
+      NumericQ[#[[2]]] && NumericQ[#[[3]]] && NumericQ[#[[4]]] &];
+   ds = pts[[All, 2]]; cs = pts[[All, 3]];
+   Legended[Graphics[Table[Tooltip[{Blend[{StandardRed, StandardGreen}, p[[4]]], PointSize[0.011], Point[{p[[2]], p[[3]]}]},
+         Column[{Style[p[[1]], Bold], Row[{"dim ", Round[p[[2]], 0.01], "   curv ", Round[p[[3]], 0.01], "   stab ", Round[p[[4]], 0.01]}]}]], {p, pts}],
+      Frame -> True, FrameLabel -> {"dimension", "curvature"},
+      PlotRange -> {Quantile[ds, {0.05, 0.95}], Quantile[cs, {0.05, 0.95}]}, Background -> White, ImageSize -> 640, AspectRatio -> 1/GoldenRatio,
+      PlotLabel -> "Dimension-Curvature landscape of all " <> ToString[Length[pts]] <> " rules (color = stability; hover for rule)"],
      BarLegend[{Blend[{StandardRed, StandardGreen}, #] &, {0, 1}}, LegendLabel -> "stability"]]];
 
 ranked = ReverseSortBy[Select[Normal[table], NumericQ[#[[2]]["StabilityScore"]] && NumericQ[#[[2]]["Vertices"]] &], (#[[2]]["StabilityScore"] #[[2]]["Vertices"]) &];
