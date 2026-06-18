@@ -37,7 +37,7 @@ rangeTable[cols_ : defaultColumns, perPage_ : 10] := DynamicModule[{ids = Keys[d
 queryData = Dataset[KeyTake[#, {"Dimension", "Curvature", "Vertices", "Diameter", "GraphDimension", "DiameterGrowth", "VertexGrowth", "StabilityScore"}] & /@ data];
 
 landscape[] := Module[{pts},
-   pts = Select[{#["Dimension"], #["Curvature"], #["StabilityScore"]} & /@ Values[data], VectorQ[#, NumericQ]];
+   pts = Select[{#["Dimension"], #["Curvature"], #["StabilityScore"]} & /@ Values[data], VectorQ[#, NumericQ] &];
    Legended[
      Graphics[{PointSize[0.008], Point[pts[[All, {1, 2}]],
         VertexColors -> (Blend[{StandardRed, StandardGreen}, #] & /@ pts[[All, 3]])]},

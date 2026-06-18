@@ -28,7 +28,7 @@ cols = {"Rule", "State", "Gen", "Vertices", "Edges", "Diameter", "Vertex Growth"
    "Graph Dim", "Ball Dim", "Ball Curv", "Stability", "V(n)", "D(n)", "Volume Growth", "Log Diff Q", "Dimensions", "Curvatures"};
 tableOf[ids_] := Dataset[(KeyTake[row[#], cols]) & /@ ids, Alignment -> {Center, Center}, MaxItems -> {25, All},
    ItemStyle -> {FontSize -> 13}, HeaderStyle -> Directive[FontSize -> 13, Bold], HeaderDisplayFunction -> (Tooltip[#, Lookup[headerTips, #, #]] &)];
-landscape := Module[{pts = Select[{#["Dimension"], #["Curvature"], #["StabilityScore"]} & /@ Values[table], VectorQ[#, NumericQ]]},
+landscape := Module[{pts = Select[{#["Dimension"], #["Curvature"], #["StabilityScore"]} & /@ Values[table], VectorQ[#, NumericQ] &]},
    Legended[Graphics[{PointSize[0.008], Point[pts[[All, {1, 2}]], VertexColors -> (Blend[{StandardRed, StandardGreen}, #] & /@ pts[[All, 3]])]},
       Frame -> True, FrameLabel -> {"dimension", "curvature"}, Background -> White, ImageSize -> 620, AspectRatio -> 1/GoldenRatio,
       PlotLabel -> "Dimension-Curvature landscape of all " <> ToString[Length[pts]] <> " rules (color = stability)"],
