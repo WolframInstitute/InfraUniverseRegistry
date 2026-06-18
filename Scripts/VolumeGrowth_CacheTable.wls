@@ -2,7 +2,7 @@
 (* Build the cached table: Data/AverageVolumeGrowths.wxf -> Data/table.wxf.
    Each row is fully precomputed (query scalars + baked thumbnails) by `tableRow`, so the
    Table notebook (and its cloud deployment) only displays/queries it -- no recomputation.
-   Parallel, resumable, atomic saves. Usage: wolframscript -file VolumeGrowth_BuildTable.wls *)
+   Parallel, resumable, atomic saves. Usage: wolframscript -file VolumeGrowth_CacheTable.wls *)
 
 dir = ParentDirectory[DirectoryName[$InputFileName]];
 codeFile = FileNameJoin[{dir, "Code", "VolumeGrowth.wl"}];

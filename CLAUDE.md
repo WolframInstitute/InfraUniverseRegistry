@@ -9,11 +9,12 @@ and a geometric Stability Score. Research/exploratory code. Layout:
   (`dimension`, `curvature`, `graphDimension` = log V / log D, `stabilityScore`, `diameterGrowth`,
   `vertexGrowth`), thumbnail builders, and `tableRow[id, rec]` (one cached table row). Needs
   `WolframInstitute`Infrageometry`` + `SetReplace``.
-- `Scripts/` — `VolumeGrowth_BuildData.wls` (run `WolframModel`, measure, write
-  `Data/AverageVolumeGrowths.wxf`), `VolumeGrowth_BuildTable.wls` (render all rows →
-  `Data/table.wxf`, the disposable cache), `VolumeGrowth_Notebooks.wls` (generate the two
-  notebooks, fully evaluated), `VolumeGrowth_Deploy.wls` (CloudDeploy them, Public). The two
-  `nb_*_init.wl` files are the notebooks' Initialization-cell source.
+- `Scripts/` — `VolumeGrowth_Compute.wls` (run `WolframModel`, measure, write
+  `Data/AverageVolumeGrowths.wxf`), `VolumeGrowth_CacheTable.wls` (render all rows →
+  `Data/table.wxf`, the disposable cache), `VolumeGrowth_GenerateNotebooks.wls` (generate the two
+  notebooks), `VolumeGrowth_DeployNotebooks.wls` (CloudDeploy them, Public). The two
+  `VolumeGrowth_{Table,Single}Init.wl` files are the notebooks' Initialization-cell source,
+  embedded verbatim by the generator (kept as real `.wl` so they stay editable, not string literals).
 - `Notebooks/` — generated `VolumeGrowth_Table.{nb,md}` and `VolumeGrowth_Single.{nb,md}`.
 - `Data/` — gitignored. `AverageVolumeGrowths.wxf` is the measurement source of truth;
   `table.wxf` is the regenerable cache.
@@ -22,23 +23,29 @@ and a geometric Stability Score. Research/exploratory code. Layout:
 ## Data
 
 `Data/AverageVolumeGrowths.wxf` (gitignored) :: `<| id -> <|"Growths" (geometric-mean ball-volume
-sequence per generation, `Around` with error bars), "VertexCounts", "EdgeCounts", "Diameters",
-"FinalState", "Partial"|> |>`. Derived scalars and thumbnails are never stored here — they are
-recomputed by `tableRow` into the cache `table.wxf`.
+sequence per generation, `Around[mean, std]` where the error is the **standard deviation across
+all center vertices** — the spread of V(r), not the precision of the mean), "VertexCounts",
+"EdgeCounts", "Diameters", "FinalState", "Partial"|> |>`. (`VolumeGrowth_Compute.wls` measures
+`Exp[Around[Mean, StandardDeviation]]` of `Log V(r)` over centers.) Derived scalars and thumbnails
+are never stored here — they are recomputed by `tableRow` into the cache `table.wxf`.
 
 ## Notebooks (both deployed Public to the Wolfram Cloud)
 
-- **Table** — self-contained, no paclet at view time. Initialization embeds two `Uncompress`
-  blobs: `featuredRows` (the 20 largest, most stable rules, with big hypergraph thumbnails) and
-  `scalarData` (every rule's scalars). Sections: Initialization · Dimension-Curvature Landscape
-  (`landscape[]`, hover for rule) · Featured Rules (`buildTable[featured]`) + Queries (on all rules).
-- **Single** — one example rule via `Code/VolumeGrowth.wl`. Sections: Initialization · Generations ·
+- **Table** — **live / interactive**, self-contained, no paclet. Display cells (`landscape[]`,
+  `buildTable[featured]`, queries) are kept as code; the self-contained data (two `Uncompress`
+  blobs: `featuredRows` = 20 largest/most-stable rules with big **bitmap** thumbnails, and
+  `scalarData` = every rule's scalars) plus the definitions live in a **folded Initialization
+  section at the end**. Evaluating the notebook gives the real interactive `Dataset`. Sections:
+  Dimension-Curvature Landscape · Featured Rules + Queries · (folded) Initialization.
+- **Single** — one example rule via `Code/VolumeGrowth.wl`, generated **fully evaluated** (input +
+  output cells) so it renders statically in the cloud. Sections: Initialization · Generations ·
   Volume Growth · Log Difference Quotients · Dimension and Curvature · Vertex and Edge Count and
   Diameter · Geometric Stability (geometry trajectory beside the Cauchy tail).
 
-Notebooks are generated **fully evaluated** (input + output cells) so they render statically in
-the cloud. `VolumeGrowth_Notebooks.wls` overrides `thumbOpts`/`finalStateThumb` to large sizes
-for the 20 cloud rows.
+`VolumeGrowth_GenerateNotebooks.wls` overrides `thumbOpts`/`finalStateThumb` to large sizes for the
+20 featured rows. Error bars everywhere are the **standard deviation of ball volume across centers**
+(stored directly in the data). The old `AverageVolumeGrowths.sem.wxf` (gitignored backup) holds the
+prior SEM-based version; std = `SEM·√N` with N = the generation's vertex count.
 
 ## Conventions
 

@@ -1,6 +1,6 @@
 (* VolumeGrowth — infrageometric observables for the Wolfram notable universes.
    Compute functions (need WolframInstitute`Infrageometry`) + thumbnail builders + the
-   cached-table row builder `tableRow`. Loaded by the BuildData / BuildTable scripts and by
+   cached-table row builder `tableRow`. Loaded by the Compute / CacheTable scripts and by
    the Single-rule notebook. The Table notebook does NOT load this (it only displays the
    precomputed cached table, no paclet needed). *)
 

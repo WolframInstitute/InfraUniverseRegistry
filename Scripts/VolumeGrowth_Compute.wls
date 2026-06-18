@@ -3,7 +3,7 @@
    Writes Data/AverageVolumeGrowths.wxf :: <|id -> <|Growths, VertexCounts, EdgeCounts,
    Diameters, FinalState|>|>. Volumes are computed generation-by-generation and kept for every
    generation that fits the per-generation time cap; heavy rules are kept Partial. Half the
-   cores, atomic saves, resumable. Usage: wolframscript -file VolumeGrowth_BuildData.wls [nRules] *)
+   cores, atomic saves, resumable. Usage: wolframscript -file VolumeGrowth_Compute.wls [nRules] *)
 
 Needs["SetReplace`"];
 wmd = ResourceFunction["WolframModelData"];
@@ -11,7 +11,7 @@ volumes[state_] :=
   Module[{graph = Graph[DeleteCases[UndirectedEdge[a_, a_]][DeleteDuplicates[UndirectedEdge @@@ Catenate[Subsets[#, {2}] & /@ state]]]], dm, maxR},
    If[VertexCount[graph] < 2, Return[{Around[1, 0]}]];
    dm = GraphDistanceMatrix[graph]; maxR = Max[DeleteCases[Flatten[dm], Infinity]];
-   Exp[MeanAround[Log[#]]] & /@ Transpose[Accumulate[BinCounts[# /. Infinity -> maxR + 2, {0, maxR + 1, 1}]] & /@ dm]];
+   Exp[Around[Mean[Log[#]], If[Length[#] > 1, StandardDeviation[Log[#]], 0.]]] & /@ Transpose[Accumulate[BinCounts[# /. Infinity -> maxR + 2, {0, maxR + 1, 1}]] & /@ dm]];
 compute[spec_] :=
   Module[{s, g = {}, vcs = {}, ecs = {}, dias = {}, v},
    s = TimeConstrained[Rest[WolframModel[spec[[2]]["Rule"], spec[[2]]["InitialCondition"],
