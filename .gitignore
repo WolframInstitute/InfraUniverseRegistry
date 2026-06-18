@@ -1,11 +1,9 @@
 Data/
+Notebooks/*.nb
 Notebooks/*.wxf
-Notebooks/*.log
-Notebooks/*.png
-.venv/
+*.log
 .DS_Store
 .wolfram_images/
 *.nb~
+.venv/
 ClaudePluginMarketplace/
-Scripts/
-Notebooks/*.nb
