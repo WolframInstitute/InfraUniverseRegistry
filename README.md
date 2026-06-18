@@ -7,4 +7,4 @@ This project maps the **infrageometric landscape** of the [Wolfram Notable Unive
 
 ## Computational Experiments
 
-* [Volume Growth — Dimension and Curvature](CLOUD_LINK_TBD)
+* [Volume Growth — Dimension and Curvature](https://www.wolframcloud.com/obj/hajek_pavel/InfraUniverseRegistry/BallVolumeGrowth)
