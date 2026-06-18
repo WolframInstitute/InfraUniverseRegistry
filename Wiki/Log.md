@@ -15,3 +15,16 @@
 - Consolidated to a **single notebook** `BallVolumeGrowth.nb` (per user): one sortable table, a q(r)-overlay section for characteristic rules (extreme dim/curv, all generations with error bars), and a dimension-curvature plane. Storage now keeps q-sequences **per generation** (for the overlays). Added `qPlot`, `characteristicRules`, `dimCurvPlot` inline.
 - **Simplified to self-contained notebooks (per user): removed the `Code/` folder entirely.** All logic now inline in each notebook's Initialization cell (load paclets, `universeData`, `qSequence` with `MeanAround` error bars, `dimensionCurvature` simple BG fit, `growth`, `registryTable`). Storage = `Notebooks/universes.wxf` `<|id -> <|VertexCounts, Q|>|>`. Three notebooks (Dimensions/Curvature/Growth) = init + regenerate + itemized columns + sortable table. Deleted obsolete scripts; `generate_notebooks.wls` writes the notebooks.
 - Refactored storage (per user): store **raw q-sequences** per universe — `radialQ[MeanAround /@ Transpose@BallVolumes[...]]`, with `Around` error bars — instead of precomputed fits. Ported the paclet's `dimensionCurvature` to `fitDimensionCurvature[qSeq]` (in `Growth.wl`); dimension/curvature now fitted in the notebooks with error bars. Observables keyed per universe (was per `{rule,n}`). Notebooks slimmed to init + regenerate + one sortable `registryTable` Dataset (sorted by dimension/curvature/growth). Tests 8/8.
+
+## 2026-06-18
+- Restructured around `AverageBallVolumeGrowths.wxf` (Growths, VertexCounts, EdgeCounts, Diameters,
+  FinalState); raised caps to 14 generations / 5000 vertices; full parallel rebuild, then a
+  **partial-recovery** pass keeping the cheap early generations of heavy rules (`Partial`). Coverage ~945/947.
+- Rewrote the table layer as one `buildTable[data, columns]` (renders a given subset) + `rangeTable`
+  (From/To range); bitmap thumbnails (no live-graphics lag), max-only ticks, black mesh dots, error-bar
+  fences, em-dash for missing. New columns: Final Generation/Edges, Graph Dimension (log V/log D);
+  growth by **diameter trend**; **Stability Score** = 1/(1 + tail diameter of (d,K) over its last third),
+  higher = more converged. Queries split into Data query / Table query (Dataset operator forms).
+- Slimmed the repo to docs + the notebook's markdown source; data and `.wls` scripts kept local; the
+  generated `.nb` is deployed to the Wolfram Cloud (link in README). Added a Conventional Commits hook
+  and compactified the git history.

@@ -1,12 +1,12 @@
 # Wiki Index
 
-- [Plan](Plans/Plan.md) — full project plan (data model, phases, presentation)
-- [Status](Status.md) — current state
+- [Status](Status.md) — current design and state
+- [Plan](Plans/Plan.md) — design and roadmap
 - [Log](Log.md) — chronological work log
-- [Registry table](Resources/Registry.md) — the 947 rules (generated)
+- [Registry table](Resources/Registry.md) — the 947 registry rules (generated)
 
 ## Concepts
-_(infrageometric observables, growth classification, estimators — to be written)_
-
-## Resources
-- [Registry table](Resources/Registry.md)
+- Infrageometric observables: ball-volume growth → dimension & scalar curvature (Bishop-Gromov
+  windowed fit of q(r) = d log V / d log r).
+- Graph dimension (log V / log D) vs ball-growth dimension; a gap flags filaments / protrusions.
+- Growth measured by diameter trend; Stability Score = convergence of the (d,K) trajectory.

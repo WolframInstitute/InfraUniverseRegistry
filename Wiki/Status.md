@@ -1,25 +1,42 @@
 # Status
 
-**Self-contained notebooks; no `Code/` folder.** All logic is inline in each notebook's
-Initialization cell. `Scripts/generate_notebooks.wls` writes the three notebooks.
+A single self-contained notebook plus its data. **All logic lives inline in the notebook's
+Initialization cell.** The build/rebuild/deploy scripts under `Scripts/` are local tooling
+(gitignored) and the data lives locally (gitignored). The canonical repo carries only the
+markdown docs and the notebook's markdown source; the generated `.nb` is deployed to the
+Wolfram Cloud and linked from the README.
 
-- **One notebook** `BallVolumeGrowth.nb` (title *Ball Volume Growth Characteristics*): Initialization
-  (helpers `volumes` + `fit`) · Rebuild Data (inline, valid rules only) · Summary Table (sortable
-  `Dataset`, capped to 15 rows: Rule Name, Final State graph, Final Iteration, Final Vertex Count,
-  Vertex Growth, Ball Volume Growths, Log Difference Quotients, per-iteration Dimensions & Curvatures
-  plots) · Dimension-Curvature Landscape (labelled scatter) · Individual Characteristics (graph-per-
-  iteration grid + volume/LDQ/dim-curv/vertex-growth example cells). All validated by rendering.
-- Stored observable = **geometric-mean ball volume sequence** per generation, averaged over **all**
-  vertices via one `GraphDistanceMatrix` + cumulative `BinCounts` (`Around` error bars; deterministic);
-  q/dimension/curvature derived via the paclet's Bishop-Gromov fit (`fit` guarded against short input).
-- **Rebuild is parallel** (`ParallelMap`, batched, resumable); Rule Name links to the registry URL.
-- Colors: volume & q(r) yellow→red; dimension yellow→green; curvature yellow→purple; vertex growth red.
-- **Storage**: `Notebooks/universes.wxf` (gitignored) :: `<|ruleId -> <|VertexCounts, Volumes (per gen), FinalState|>|>`.
-- **Fits in the notebook**: simple Bishop-Gromov linear fit of the stored q-sequence; dimension &
-  curvature come out as `Around` (error bars).
+## Notebook — *Ball Volume Growth Characteristics*
+Source: `Notebooks/BallVolumeGrowth.md`. Sections:
+- **Initialization** — loads the data, defines inline functions (`fit`, `dimcurvSeq`,
+  `dimension`/`curvature` + errors, `stabilityScore`, `finalDiameter`, `graphDimension`,
+  `growthClass`, `scalars`, `graphOf`, `buildTable`, `rangeTable`).
+- **Summary Table** — `rangeTable[data, defaultColumns]`: pick a rule range (From/To); only those
+  rows render (bitmap thumbnails). Columns: Rule · Final State · Final Generation · Final Vertex
+  Count · Final Edge Count · Final Graph Diameter · Graph Growth · Graph Dimension · Ball Growth
+  Dimension · Ball Growth Curvature · Stability Score · per-iteration plots (Vertex Growth, Ball
+  Volume Growth, Log Diff Quotients, Dimensions, Curvatures).
+- **Queries** — Data query (functions computed live on the data) and Table query (cached table),
+  via `Dataset` operator forms.
+- **Dimension-Curvature Landscape** — one point per rule, colored by vertex count.
+- **Individual Characteristics** — one rule: graph per iteration, volume growth, log-diff
+  quotients, dimension & curvature per iteration (fit error bars), vertex growth, the (d,K)
+  trajectory, and the Cauchy tail-diameter stability plot.
 
-**Next:** run the Regenerate cell with `wmd[]` (all 947, multi-hour) to populate `universes.wxf`,
-then the tables show the full registry.
+## Measurement
+- **Data** `Notebooks/AverageBallVolumeGrowths.wxf` (local) ::
+  `<|id -> <|Growths, VertexCounts, EdgeCounts, Diameters, FinalState|>|>`. `Growths` =
+  geometric-mean ball-volume sequence per generation, averaged over **all** vertices via one
+  `GraphDistanceMatrix` + cumulative `BinCounts` (`Around` error bars, deterministic).
+- **Evolution** `WolframModel`, caps 14 generations / 5000 vertices / 100000 events, per-rule time
+  cap; parallel, resumable. Heavy rules are kept **partial** (truncated to the generations that fit
+  the time budget, flagged `Partial`).
+- **Observables** dimension & curvature from the Bishop-Gromov **windowed fit** of
+  q(r) = d log V / d log r (`Around` error bars). **Graph Dimension** = log V / log D (whole-graph).
+  **Growth** = diameter trend (expanding / static / contracting). **Stability Score** =
+  1/(1 + tail diameter of the (d,K) trajectory over its last third); higher = more converged.
+- **Coverage** 947 rules; ~945 with geometry (~150 partial); a few still time out.
 
-**History:** an earlier elaborate `Code/`-folder pipeline (per-center fits, time budgets, grids,
-scatter) was replaced by this minimal inline design at the user's request. See Log.
+## Repo layout
+- Committed: README, this Wiki, `CLAUDE.md`, `Notebooks/BallVolumeGrowth.md`, `.githooks/commit-msg`.
+- Local only (gitignored): `Notebooks/*.wxf` (data), `Notebooks/*.nb` (generated), `Scripts/` (tooling).
