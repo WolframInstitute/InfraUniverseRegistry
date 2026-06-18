@@ -7,4 +7,5 @@ This project maps the **infrageometric landscape** of the [Wolfram Notable Unive
 
 ## Computational Experiments
 
-* [Volume Growth — Dimension and Curvature](https://www.wolframcloud.com/obj/hajek_pavel/InfraUniverseRegistry/BallVolumeGrowth)
+* [Volume Growth — Dimension and Curvature](https://www.wolframcloud.com/obj/hajek_pavel/InfraUniverseRegistry/VolumeGrowth) — all rules in the dimension–curvature landscape, plus a table of the 20 largest, most stable.
+* [Volume Growth — Single Rule](https://www.wolframcloud.com/obj/hajek_pavel/InfraUniverseRegistry/VolumeGrowthSingle) — one rule's full geometric characterization.

@@ -1,12 +1,12 @@
 #!/usr/bin/env wolframscript
-(* Build the cached table: Data/AverageBallVolumeGrowths.wxf -> Data/table.wxf.
+(* Build the cached table: Data/AverageVolumeGrowths.wxf -> Data/table.wxf.
    Each row is fully precomputed (query scalars + baked thumbnails) by `tableRow`, so the
    Table notebook (and its cloud deployment) only displays/queries it -- no recomputation.
-   Parallel, resumable, atomic saves. Usage: wolframscript -file BallVolumeGrowth_BuildTable.wls *)
+   Parallel, resumable, atomic saves. Usage: wolframscript -file VolumeGrowth_BuildTable.wls *)
 
 dir = ParentDirectory[DirectoryName[$InputFileName]];
-codeFile = FileNameJoin[{dir, "Code", "BallVolumeGrowth.wl"}];
-dataFile = FileNameJoin[{dir, "Data", "AverageBallVolumeGrowths.wxf"}];
+codeFile = FileNameJoin[{dir, "Code", "VolumeGrowth.wl"}];
+dataFile = FileNameJoin[{dir, "Data", "AverageVolumeGrowths.wxf"}];
 tableFile = FileNameJoin[{dir, "Data", "table.wxf"}];
 save[t_] := (Export[tableFile <> ".tmp", t, "WXF"]; RenameFile[tableFile <> ".tmp", tableFile, OverwriteTarget -> True]);
 
@@ -22,7 +22,7 @@ Print["[", DateString["ISODateTime"], "] caching ", Length@todo, " of ", Length@
 
 done = 0;
 Do[
-  AssociateTo[table, Select[Association @ ParallelMap[(#[[1]] -> TimeConstrained[tableRow[#[[1]], #[[2]]], 90, Missing[]]) &, batch], AssociationQ]];
+  AssociateTo[table, Select[Association @ ParallelMap[(#[[1]] -> TimeConstrained[tableRow[#[[1]], #[[2]]], 150, Missing[]]) &, batch], AssociationQ]];
   save[table]; done += Length@batch;
   Print["[", DateString["ISODateTime"], "] cached ", done, "/", Length@todo, " (table: ", Length@table, ")"],
   {batch, Partition[todo, 50, 50, 1, {}]}];

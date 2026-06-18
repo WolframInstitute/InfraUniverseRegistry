@@ -1,10 +1,11 @@
-(* BallVolumeGrowth — infrageometric observables for the Wolfram notable universes.
+(* VolumeGrowth — infrageometric observables for the Wolfram notable universes.
    Compute functions (need WolframInstitute`Infrageometry`) + thumbnail builders + the
    cached-table row builder `tableRow`. Loaded by the BuildData / BuildTable scripts and by
    the Single-rule notebook. The Table notebook does NOT load this (it only displays the
    precomputed cached table, no paclet needed). *)
 
 Needs["WolframInstitute`Infrageometry`"];
+Needs["SetReplace`"];
 
 url[id_] := "https://www.wolframphysics.org/universes/" <> id <> "/";
 ruleLink[id_] := Hyperlink[id, url[id]];
@@ -97,12 +98,8 @@ diameterThumb[rec_] := Module[{dia = rec["Diameters"]},
    If[Length[dia] < 2, dash,
     Rasterize @ ListLinePlot[dia, PlotStyle -> Directive[AbsoluteThickness[2], StandardOrange],
       FrameTicks -> {{mt[Max[dia]], None}, {mt[Length[dia]], None}}, thumbOpts]]];
-finalStateThumb[rec_] := Module[{g = graphOf[rec["FinalState"]], h},
-   If[VertexCount[g] < 1, Return[dash]];
-   h = If[VertexCount[g] > 220, Subgraph[g, RandomSample[VertexList[g], 220]], g];
-   TimeConstrained[Rasterize @ Graph[h, ImageSize -> 86, graphOpts, Background -> White], 12, dash]];
+finalStateThumb[rec_] := TimeConstrained[Quiet @ Rasterize[WolframModelPlot[rec["FinalState"], ImageSize -> {UpTo[140], UpTo[140]}], ImageResolution -> 72], 90, dash];
 
-(* one cached row: query scalars + display thumbnails, fully precomputed *)
 tableRow[id_, rec_] := <|
    "Dimension" -> dimension[rec], "DimensionError" -> dimensionError[rec],
    "Curvature" -> curvature[rec], "CurvatureError" -> curvatureError[rec],

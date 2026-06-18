@@ -1,9 +1,9 @@
 #!/usr/bin/env wolframscript
 (* Build the raw data: evolve every registry rule and measure the averaged ball-volume growth.
-   Writes Data/AverageBallVolumeGrowths.wxf :: <|id -> <|Growths, VertexCounts, EdgeCounts,
+   Writes Data/AverageVolumeGrowths.wxf :: <|id -> <|Growths, VertexCounts, EdgeCounts,
    Diameters, FinalState|>|>. Volumes are computed generation-by-generation and kept for every
    generation that fits the per-generation time cap; heavy rules are kept Partial. Half the
-   cores, atomic saves, resumable. Usage: wolframscript -file BallVolumeGrowth_BuildData.wls [nRules] *)
+   cores, atomic saves, resumable. Usage: wolframscript -file VolumeGrowth_BuildData.wls [nRules] *)
 
 Needs["SetReplace`"];
 wmd = ResourceFunction["WolframModelData"];
@@ -26,7 +26,7 @@ compute[spec_] :=
       "FinalState" -> s[[Length[g]]], "Partial" -> (Length[g] < Length[s])|>]];
 
 dir = ParentDirectory[DirectoryName[$InputFileName]];
-dataFile = FileNameJoin[{dir, "Data", "AverageBallVolumeGrowths.wxf"}];
+dataFile = FileNameJoin[{dir, "Data", "AverageVolumeGrowths.wxf"}];
 save[d_] := (Export[dataFile <> ".tmp", d, "WXF"]; RenameFile[dataFile <> ".tmp", dataFile, OverwriteTarget -> True]);
 data = If[FileExistsQ[dataFile], Import[dataFile], <||>];
 nRules = If[Length[$ScriptCommandLine] > 1, ToExpression[$ScriptCommandLine[[2]]], All];

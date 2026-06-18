@@ -6,8 +6,8 @@ Initialization cell.** The build/rebuild/deploy scripts under `Scripts/` are loc
 markdown docs and the notebook's markdown source; the generated `.nb` is deployed to the
 Wolfram Cloud and linked from the README.
 
-## Notebook — *Ball Volume Growth Characteristics*
-Source: `Notebooks/BallVolumeGrowth.md`. Sections:
+## Notebook — *Volume Growth Characteristics*
+Source: `Notebooks/VolumeGrowth.md`. Sections:
 - **Initialization** — loads the data, defines inline functions (`fit`, `dimcurvSeq`,
   `dimension`/`curvature` + errors, `stabilityScore`, `finalDiameter`, `graphDimension`,
   `growthClass`, `scalars`, `graphOf`, `buildTable`, `rangeTable`).
@@ -24,7 +24,7 @@ Source: `Notebooks/BallVolumeGrowth.md`. Sections:
   trajectory, and the Cauchy tail-diameter stability plot.
 
 ## Measurement
-- **Data** `Notebooks/AverageBallVolumeGrowths.wxf` (local) ::
+- **Data** `Notebooks/AverageVolumeGrowths.wxf` (local) ::
   `<|id -> <|Growths, VertexCounts, EdgeCounts, Diameters, FinalState|>|>`. `Growths` =
   geometric-mean ball-volume sequence per generation, averaged over **all** vertices via one
   `GraphDistanceMatrix` + cumulative `BinCounts` (`Around` error bars, deterministic).
@@ -38,5 +38,5 @@ Source: `Notebooks/BallVolumeGrowth.md`. Sections:
 - **Coverage** 947 rules; ~945 with geometry (~150 partial); a few still time out.
 
 ## Repo layout
-- Committed: README, this Wiki, `CLAUDE.md`, `Notebooks/BallVolumeGrowth.md`, `.githooks/commit-msg`.
+- Committed: README, this Wiki, `CLAUDE.md`, `Notebooks/VolumeGrowth.md`, `.githooks/commit-msg`.
 - Local only (gitignored): `Notebooks/*.wxf` (data), `Notebooks/*.nb` (generated), `Scripts/` (tooling).

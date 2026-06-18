@@ -1,57 +1,56 @@
 # InfraUniverseRegistry
 
-Horizontal infrageometric study across the Wolfram Physics universe registry (947 rules):
-dimension + curvature per rule, presented as sortable tables. Research/exploratory code.
+Horizontal infrageometric study across the Wolfram notable-universe registry (~947 rules):
+ball-volume growth → dimension and scalar curvature per rule, plus vertex/edge/diameter growth
+and a geometric Stability Score. Research/exploratory code. Layout:
 
-**Design: there is no `Code/` folder.** All logic lives inline in the notebook's
-**Initialization** cell — simple, readable, self-contained. `Scripts/generate_notebooks.wls`
-is the only build tool: it writes the single notebook `Notebooks/BallVolumeGrowth.nb`. Keep the
-inline code minimal — no defensive wrappers, time budgets, or elaborate window detection.
+- `Code/VolumeGrowth.wl` — shared functions: the windowed Bishop-Gromov fit `fit` (dimension =
+  intercept, curvature from slope, with `Around` errors), per-generation `dimcurvSeq`, scalars
+  (`dimension`, `curvature`, `graphDimension` = log V / log D, `stabilityScore`, `diameterGrowth`,
+  `vertexGrowth`), thumbnail builders, and `tableRow[id, rec]` (one cached table row). Needs
+  `WolframInstitute`Infrageometry`` + `SetReplace``.
+- `Scripts/` — `VolumeGrowth_BuildData.wls` (run `WolframModel`, measure, write
+  `Data/AverageVolumeGrowths.wxf`), `VolumeGrowth_BuildTable.wls` (render all rows →
+  `Data/table.wxf`, the disposable cache), `VolumeGrowth_Notebooks.wls` (generate the two
+  notebooks, fully evaluated), `VolumeGrowth_Deploy.wls` (CloudDeploy them, Public). The two
+  `nb_*_init.wl` files are the notebooks' Initialization-cell source.
+- `Notebooks/` — generated `VolumeGrowth_Table.{nb,md}` and `VolumeGrowth_Single.{nb,md}`.
+- `Data/` — gitignored. `AverageVolumeGrowths.wxf` is the measurement source of truth;
+  `table.wxf` is the regenerable cache.
+- `Wiki/` — plain markdown (`Index.md`, `Status.md`, `Log.md`, `Plans/`, `Resources/`).
 
-## What the inline code does
+## Data
 
-Only **two helper functions** — everything else is inline in the relevant cell.
+`Data/AverageVolumeGrowths.wxf` (gitignored) :: `<| id -> <|"Growths" (geometric-mean ball-volume
+sequence per generation, `Around` with error bars), "VertexCounts", "EdgeCounts", "Diameters",
+"FinalState", "Partial"|> |>`. Derived scalars and thumbnails are never stored here — they are
+recomputed by `tableRow` into the cache `table.wxf`.
 
-- `volumes[state]` — builds the graph, computes `GraphDistanceMatrix` **once**, and averages the ball
-  volume over **all** vertices as centers: each row's cumulative `BinCounts` is that center's V(r), then
-  `Exp[MeanAround[Log[...]]]` per radius gives the geometric-mean sequence with error bars. Deterministic
-  (no sampling).
-- `fit[q]` — guarded (`Length<2 → Missing`) port of the paclet's Bishop-Gromov fit: linear-core
-  window + `q ≈ c₁ + c₂·x`, x=r(r+1) → `{dimension = c₁, curvature = −3(c₁+2)c₂}` as `Around`.
-  q itself is the paclet's `LogDifferenceQuotients[volumeSequence]` (computed inline).
-- Rebuild cell (inline, **parallel**): `LaunchKernels`, `ParallelEvaluate[Needs["SetReplace`"]]`,
-  `DistributeDefinitions[volumes]`, then `ParallelMap` over `Select`-ed valid rules (skip ids whose
-  `"Rule"` is a `Failure`), in batches of 40 with `Export` after each (resumable — skips rules that
-  already have `"Volumes"`). `WolframModel` `<|MaxGenerations->12, MaxVertices->3000, MaxEvents->30000|>`.
-  Stores `<|"VertexCounts", "Volumes" (sequence per generation), "FinalState", "URL"|>`.
-  Rule/init/URL are prefetched on the main kernel and distributed, so subkernels never touch the
-  resource registry (only need `SetReplace`). Rule Name in the table is a `Hyperlink` to `"URL"`.
-- Summary / Landscape / Individual-Characteristics cells (inline). Per generation dimension/curvature
-  come from `fit[LogDifferenceQuotients[#]] & /@ Volumes`. Colors: volume growth & q(r) ramp
-  `StandardYellow → StandardRed` over generations; dimension-per-iteration `Yellow → Green`;
-  curvature-per-iteration `Yellow → Purple`; vertex growth solid `StandardRed`. `Mesh -> All` marks data points.
+## Notebooks (both deployed Public to the Wolfram Cloud)
 
-## Storage
+- **Table** — self-contained, no paclet at view time. Initialization embeds two `Uncompress`
+  blobs: `featuredRows` (the 20 largest, most stable rules, with big hypergraph thumbnails) and
+  `scalarData` (every rule's scalars). Sections: Initialization · Dimension-Curvature Landscape
+  (`landscape[]`, hover for rule) · Featured Rules (`buildTable[featured]`) + Queries (on all rules).
+- **Single** — one example rule via `Code/VolumeGrowth.wl`. Sections: Initialization · Generations ·
+  Volume Growth · Log Difference Quotients · Dimension and Curvature · Vertex and Edge Count and
+  Diameter · Geometric Stability (geometry trajectory beside the Cauchy tail).
 
-`Notebooks/universes.wxf` (gitignored) :: `<| ruleId -> <|"VertexCounts", "Volumes" (geometric-mean
-ball-volume sequence per generation), "FinalState"|> |>` — raw data, written by Rebuild/`rebuild_all.wls`.
-`Notebooks/summary.wxf` (gitignored, cache) :: `<| ruleId -> <|"Rule","Dimension","Curvature",
-"Vertices","Iterations","Stability"|> |>` — derived per-rule scalars for the Landscape + Queries,
-written by `build_summary.wls`/Rebuild, read by Init (instant; recomputing all 875 takes ~90 s).
-`Stability` = the Cauchy tail diameter of the (d,K) trajectory (smaller = more converged).
-Rule URLs are constructed from the id: `https://www.wolframphysics.org/universes/<id>/`. WXF =
-Wolfram binary serialization. q(r)/dimension/curvature/thumbnails are recomputed from `Volumes`, never stored.
+Notebooks are generated **fully evaluated** (input + output cells) so they render statically in
+the cloud. `VolumeGrowth_Notebooks.wls` overrides `thumbOpts`/`finalStateThumb` to large sizes
+for the 20 cloud rows.
 
-## Table columns
+## Conventions
 
-Rule · Dimension (±) · Curvature (±) · MaxVertices (confidence: small = unreliable) · Growth.
+- "Stability Score" = `1/(1 + tail diameter)` of the (dimension, curvature) trajectory over its
+  last 1/3 of generations; higher = more converged.
+- Growth rates (`vertexGrowth`, `diameterGrowth`) are signed least-squares slopes per generation:
+  0 static, − shrinking, + expanding.
+- Rule URLs: `https://www.wolframphysics.org/universes/<id>/`; the WFR `WolframModelData` page is
+  the canonical rule reference.
 
-## Dependencies & gotcha
+## Gotcha
 
-`Needs["SetReplace`"]`, `Needs["WolframInstitute`Infrageometry`"]`. If a bare kernel pre-creates
-`Global`WolframModel`, it shadows `SetReplace`WolframModel` — `Remove["Global`WolframModel"]` then
-re-`Needs`, or use `SetReplace`WolframModel`. (In the notebook front end this does not arise.)
-
-## Wiki
-
-`Wiki/` is plain markdown: `Index.md`, `Status.md`, `Log.md`, `Plans/`, `Resources/`.
+`Needs["SetReplace`"]` + `Needs["WolframInstitute`Infrageometry`"]` both define `IndexHypergraph`;
+the shadow warning is harmless. Writing files under the Dropbox CloudStorage path can hit `EPERM`
+through the editor tools — write via shell heredoc instead.
