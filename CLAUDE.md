@@ -11,8 +11,9 @@ and a geometric Stability Score. Research/exploratory code. Layout:
   `WolframInstitute`Infrageometry`` + `SetReplace``.
 - `Scripts/` — `VolumeGrowth_Compute.wls` (run `WolframModel`, measure, write
   `Data/AverageVolumeGrowths.wxf`), `VolumeGrowth_CacheTable.wls` (render all rows →
-  `Data/table.wxf`, the disposable cache), `VolumeGrowth_GenerateNotebooks.wls` (generate the two
-  notebooks), `VolumeGrowth_DeployNotebooks.wls` (CloudDeploy them, Public). The two
+  `Data/table.wxf`, a disposable cache for local browsing — the notebook generator does NOT use
+  it), `VolumeGrowth_GenerateNotebooks.wls` (generate the two notebooks, both fully evaluated,
+  computing everything from the raw data), `VolumeGrowth_DeployNotebooks.wls` (CloudDeploy them, Public). The two
   `VolumeGrowth_{Table,Single}Init.wl` files are the notebooks' Initialization-cell source,
   embedded verbatim by the generator (kept as real `.wl` so they stay editable, not string literals).
 - `Notebooks/` — generated `VolumeGrowth_Table.{nb,md}` and `VolumeGrowth_Single.{nb,md}`.
@@ -31,12 +32,12 @@ are never stored here — they are recomputed by `tableRow` into the cache `tabl
 
 ## Notebooks (both deployed Public to the Wolfram Cloud)
 
-- **Table** — **live / interactive**, self-contained, no paclet. Display cells (`landscape[]`,
-  `buildTable[featured]`, queries) are kept as code; the self-contained data (two `Uncompress`
-  blobs: `featuredRows` = 20 largest/most-stable rules with big **bitmap** thumbnails, and
-  `scalarData` = every rule's scalars) plus the definitions live in a **folded Initialization
-  section at the end**. Evaluating the notebook gives the real interactive `Dataset`. Sections:
-  Dimension-Curvature Landscape · Featured Rules + Queries · (folded) Initialization.
+- **Table** — self-contained, no paclet. Display cells (`landscape[]`, `buildTable[featured]`,
+  queries) are **pre-evaluated** (baked output cells) so the cloud renders them immediately; the
+  data (two `Uncompress` blobs: `featuredRows` = 20 largest/most-stable rules with big **bitmap**
+  thumbnails, and `scalarData` = every rule's scalars) plus the definitions live in a **folded
+  Initialization section at the end**. Re-evaluating the notebook gives the live, interactive
+  `Dataset`. Sections: Dimension-Curvature Landscape · Featured Rules + Queries · (folded) Initialization.
 - **Single** — one example rule via `Code/VolumeGrowth.wl`, generated **fully evaluated** (input +
   output cells) so it renders statically in the cloud. Sections: Initialization · Generations ·
   Volume Growth · Log Difference Quotients · Dimension and Curvature · Vertex and Edge Count and

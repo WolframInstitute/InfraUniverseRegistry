@@ -20,19 +20,19 @@ With[{rule = wmd[exId, "Rule"], init = wmd[exId, "InitialCondition"]}, GraphicsG
 ## Volume Growth
 
 ```wolfram
-With[{vol = data[exId]["Growths"]}, ListLinePlot[vol, PlotStyle -> (Directive[AbsoluteThickness[2], #] & /@ seriesColors[Length[vol], StandardYellow, StandardRed]), IntervalMarkers -> "Fences", Mesh -> All, Frame -> True, FrameLabel -> {"Radius", "Ball Volume"}, ImageSize -> 460, PlotRange -> All]]
+With[{vol = data[exId]["Growths"]}, ListLinePlot[vol, PlotStyle -> (Directive[AbsoluteThickness[2], #] & /@ seriesColors[Length[vol], StandardYellow, StandardRed]), IntervalMarkers -> "Bars", Mesh -> All, Frame -> True, FrameLabel -> {"Radius", "Ball Volume"}, ImageSize -> 460, PlotRange -> All]]
 ```
 
 ## Log Difference Quotients
 
 ```wolfram
-With[{q = LogDifferenceQuotients /@ data[exId]["Growths"]}, ListLinePlot[q, PlotStyle -> (Directive[AbsoluteThickness[2], #] & /@ seriesColors[Length[q], StandardYellow, StandardGreen]), IntervalMarkers -> "Fences", Mesh -> All, Frame -> True, FrameLabel -> {"Radius", "Log Difference Quotient"}, ImageSize -> 460, PlotRange -> All]]
+With[{q = LogDifferenceQuotients /@ data[exId]["Growths"]}, ListLinePlot[q, PlotStyle -> (Directive[AbsoluteThickness[2], #] & /@ seriesColors[Length[q], StandardYellow, StandardGreen]), IntervalMarkers -> "Bars", Mesh -> All, Frame -> True, FrameLabel -> {"Radius", "Log Difference Quotient"}, ImageSize -> 460, PlotRange -> All]]
 ```
 
 ## Dimension and Curvature
 
 ```wolfram
-With[{dc = dimcurvSeq[data[exId]]}, GraphicsRow[{ListLinePlot[DeleteCases[MapIndexed[{First[#2], #1[[1]]} &, dc], {_, _Missing}], PlotStyle -> StandardBlue, Mesh -> All, IntervalMarkersStyle -> StandardBlue, Frame -> True, FrameLabel -> {"Iteration", "Dimension"}], ListLinePlot[DeleteCases[MapIndexed[{First[#2], #1[[2]]} &, dc], {_, _Missing}], PlotStyle -> StandardPurple, Mesh -> All, IntervalMarkersStyle -> StandardPurple, Frame -> True, FrameLabel -> {"Iteration", "Curvature"}]}, ImageSize -> 640]]
+With[{dc = dimcurvSeq[data[exId]]}, GraphicsRow[{ListLinePlot[DeleteCases[MapIndexed[{First[#2], #1[[1]]} &, dc], {_, _Missing}], PlotStyle -> StandardBlue, Mesh -> All, IntervalMarkers -> "Bars", IntervalMarkersStyle -> StandardBlue, Frame -> True, FrameLabel -> {"Iteration", "Dimension"}], ListLinePlot[DeleteCases[MapIndexed[{First[#2], #1[[2]]} &, dc], {_, _Missing}], PlotStyle -> StandardPurple, Mesh -> All, IntervalMarkers -> "Bars", IntervalMarkersStyle -> StandardPurple, Frame -> True, FrameLabel -> {"Iteration", "Curvature"}]}, ImageSize -> 640]]
 ```
 
 ## Vertex and Edge Count and Diameter

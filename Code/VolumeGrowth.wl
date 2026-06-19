@@ -76,28 +76,28 @@ thumbOpts = Sequence[ImageSize -> 104, AspectRatio -> 0.8, Frame -> True, PlotRa
 growthThumb[rec_] := Module[{vol = rec["Growths"], sv = strip[rec["Growths"]]},
    If[Max[Length /@ sv] < 2, dash,
     Rasterize @ ListLinePlot[vol, PlotStyle -> (Directive[AbsoluteThickness[2], #] & /@ seriesColors[Length[vol], StandardYellow, StandardRed]),
-      FrameTicks -> {{mt[Max[Flatten[sv]]], None}, {mt[Max[Length /@ sv]], None}}, thumbOpts]]];
+      IntervalMarkers -> "Bars", FrameTicks -> {{mt[Max[Flatten[sv]]], None}, {mt[Max[Length /@ sv]], None}}, thumbOpts]]];
 ldqThumb[rec_] := Module[{q = LogDifferenceQuotients /@ rec["Growths"], sq, fl},
    sq = strip[q]; fl = Flatten[sq];
    If[fl === {} || Max[Length /@ sq] < 2, dash,
     Rasterize @ Quiet @ ListLinePlot[q, PlotStyle -> (Directive[AbsoluteThickness[2], #] & /@ seriesColors[Length[q], StandardYellow, StandardGreen]),
-      FrameTicks -> {{mt[Max[fl]], None}, {mt[Max[Length /@ sq]], None}}, thumbOpts]]];
+      IntervalMarkers -> "Bars", FrameTicks -> {{mt[Max[fl]], None}, {mt[Max[Length /@ sq]], None}}, thumbOpts]]];
 dimensionThumb[rec_] := Module[{d = DeleteCases[MapIndexed[{First[#2], #1[[1]]} &, dimcurvSeq[rec]], {_, _Missing}]},
    If[Length[d] < 1, dash,
     Rasterize @ ListLinePlot[d, PlotStyle -> Directive[AbsoluteThickness[2], StandardBlue], IntervalMarkersStyle -> StandardBlue,
-      FrameTicks -> {{mt[Max[strip[d[[All, 2]]]]], None}, {mt[Max[d[[All, 1]]]], None}}, thumbOpts]]];
+      IntervalMarkers -> "Bars", FrameTicks -> {{mt[Max[strip[d[[All, 2]]]]], None}, {mt[Max[d[[All, 1]]]], None}}, thumbOpts]]];
 curvatureThumb[rec_] := Module[{d = DeleteCases[MapIndexed[{First[#2], #1[[2]]} &, dimcurvSeq[rec]], {_, _Missing}]},
    If[Length[d] < 1, dash,
     Rasterize @ ListLinePlot[d, PlotStyle -> Directive[AbsoluteThickness[2], StandardPurple], IntervalMarkersStyle -> StandardPurple,
-      FrameTicks -> {{mt[Max[strip[d[[All, 2]]]]], None}, {mt[Max[d[[All, 1]]]], None}}, thumbOpts]]];
+      IntervalMarkers -> "Bars", FrameTicks -> {{mt[Max[strip[d[[All, 2]]]]], None}, {mt[Max[d[[All, 1]]]], None}}, thumbOpts]]];
 vertexThumb[rec_] := Module[{vc = rec["VertexCounts"]},
    If[Length[vc] < 2, dash,
     Rasterize @ ListLinePlot[vc, PlotStyle -> Directive[AbsoluteThickness[2], StandardBrown],
-      FrameTicks -> {{mt[Max[vc]], None}, {mt[Length[vc]], None}}, thumbOpts]]];
+      IntervalMarkers -> "Bars", FrameTicks -> {{mt[Max[vc]], None}, {mt[Length[vc]], None}}, thumbOpts]]];
 diameterThumb[rec_] := Module[{dia = rec["Diameters"]},
    If[Length[dia] < 2, dash,
     Rasterize @ ListLinePlot[dia, PlotStyle -> Directive[AbsoluteThickness[2], StandardOrange],
-      FrameTicks -> {{mt[Max[dia]], None}, {mt[Length[dia]], None}}, thumbOpts]]];
+      IntervalMarkers -> "Bars", FrameTicks -> {{mt[Max[dia]], None}, {mt[Length[dia]], None}}, thumbOpts]]];
 finalStateThumb[rec_] := TimeConstrained[Quiet @ Rasterize[WolframModelPlot[rec["FinalState"], ImageSize -> {UpTo[140], UpTo[140]}], ImageResolution -> 72], 90, dash];
 
 tableRow[id_, rec_] := <|
