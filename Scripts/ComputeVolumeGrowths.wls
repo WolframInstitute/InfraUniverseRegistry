@@ -11,7 +11,7 @@ Needs["SetReplace`"];
 Needs["WolframInstitute`Infrageometry`"];
 wmd = ResourceFunction["WolframModelData"];
 volumes[state_] :=
-  Module[{graph = Graph[DeleteCases[UndirectedEdge[a_, a_]][DeleteDuplicates[UndirectedEdge @@@ Catenate[Subsets[#, {2}] & /@ state]]]], vols},
+  Module[{graph = Hypergraph2Section[state], vols},
    If[VertexCount[graph] < 2, Return[{Around[1, 0]}]];
    vols = BallVolumes[graph, All, All, "Measure" -> "Counting"];
    Exp[MeanAround[Log[#]]] & /@ Transpose[PadRight[#, Max[Length /@ vols], Last[#]] & /@ vols]];

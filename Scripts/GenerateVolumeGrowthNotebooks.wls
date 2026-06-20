@@ -81,7 +81,7 @@ emit["VolumeGrowth_Table", {
       Cell[BoxData[dataBlob], "Input", InitializationCell -> True],
       Cell[BoxData[displayDefs], "Input", InitializationCell -> True]}, Closed]],
    Cell["Dimension-Curvature Landscape", "Section"],
-   ioCells["landscape[scalarData]", landscape[scalarData]],
+   ioCells["landscape[scalarData, featuredRows]", landscape[scalarData, featuredRows]],
    Cell["Featured Rules", "Section"],
    ioCells["buildTable[featuredRows]", buildTable[featuredRows]],
    Cell["Queries", "Section"],
@@ -100,7 +100,7 @@ ruleName = \"wm3382\";
 states = Rest @ ResourceFunction[\"WolframModel\"][" <> ToString[wmSpec["Rule"], InputForm] <> ", " <> ToString[wmSpec["InitialCondition"], InputForm] <> ",
     <|\"MaxGenerations\" -> 14, \"MaxVertices\" -> 5000, \"MaxEvents\" -> 100000|>][\"StatesList\"];
 
-graphs = Graph[DeleteCases[UndirectedEdge[a_, a_]][DeleteDuplicates[UndirectedEdge @@@ Catenate[Subsets[#, {2}] & /@ #]]]] & /@ states;
+graphs = Hypergraph2Section /@ states;
 
 ballValues = With[{vols = BallVolumes[#, All, All, \"Measure\" -> \"Counting\"]},
      Transpose[PadRight[#, Max[Length /@ vols], Last[#]] & /@ vols]] & /@ graphs;

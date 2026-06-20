@@ -42,7 +42,7 @@ buildTable[rows_, ids_ : Automatic, cols_ : defaultColumns] := Dataset[(KeyTake[
    Alignment -> {Center, Center}, MaxItems -> {25, All}, ItemStyle -> {FontSize -> 15}, HeaderStyle -> Directive[FontSize -> 15, Bold],
    HeaderDisplayFunction -> (Tooltip[#, Lookup[headerTips, #, #]] &)];
 queryData[scalars_] := Dataset[scalars];
-landscape[scalars_] := Module[{cf, pts, ds, cs, dr, cr, inr},
+landscape[scalars_, rows_ : <||>] := Module[{cf, pts, ds, cs, dr, cr, inr},
    cf = Blend[{StandardGray, StandardGreen}, #] &;
    pts = Select[{#1, #2["Dimension"], #2["DimensionError"], #2["Curvature"], #2["CurvatureError"], #2["StabilityScore"]} & @@@ Normal[scalars],
       NumericQ[#[[2]]] && NumericQ[#[[4]]] && NumericQ[#[[6]]] &];
@@ -51,7 +51,8 @@ landscape[scalars_] := Module[{cf, pts, ds, cs, dr, cr, inr},
    inr = Select[pts, dr[[1]] <= #[[2]] <= dr[[2]] && cr[[1]] <= #[[4]] <= cr[[2]] &];
    Legended[
      Graphics[Table[Tooltip[Hyperlink[{cf[p[[6]]], PointSize[0.011], Point[{p[[2]], p[[4]]}]}, url[p[[1]]]],
-         Column[{Style[p[[1]], Bold], Row[{"dim ", Around[p[[2]], p[[3]]], "   curv ", Around[p[[4]], p[[5]]]}]}]], {p, inr}],
+         Column[{Style[p[[1]], Bold], Row[{"dim ", Around[p[[2]], p[[3]]], "   curv ", Around[p[[4]], p[[5]]]}],
+            Replace[rows[p[[1]]]["StateThumb"], Except[_?ImageQ] -> Nothing]}]], {p, inr}],
       Frame -> True, FrameLabel -> {"Dimension", "Curvature"}, PlotRange -> {dr, cr}, Background -> White,
       ImageSize -> 640, AspectRatio -> 1/GoldenRatio],
      BarLegend[{cf, {0, 1}}, LegendLabel -> "Stability Score", LegendMarkerSize -> 300]]];

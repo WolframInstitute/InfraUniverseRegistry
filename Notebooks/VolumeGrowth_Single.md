@@ -10,7 +10,7 @@ ruleName = "wm3382";
 states = Rest @ ResourceFunction["WolframModel"][{{{1, 2}, {1, 3}} -> {{2, 3}, {2, 4}, {3, 4}, {1, 2}}}, {{1, 1}, {1, 1}},
     <|"MaxGenerations" -> 14, "MaxVertices" -> 5000, "MaxEvents" -> 100000|>]["StatesList"];
 
-graphs = Graph[DeleteCases[UndirectedEdge[a_, a_]][DeleteDuplicates[UndirectedEdge @@@ Catenate[Subsets[#, {2}] & /@ #]]]] & /@ states;
+graphs = Hypergraph2Section /@ states;
 
 ballValues = With[{vols = BallVolumes[#, All, All, "Measure" -> "Counting"]},
      Transpose[PadRight[#, Max[Length /@ vols], Last[#]] & /@ vols]] & /@ graphs;
