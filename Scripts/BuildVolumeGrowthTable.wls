@@ -50,7 +50,7 @@ landscape[scalars_] := Module[{cf, pts, ds, cs, dr, cr, inr},
    dr = Quantile[ds, {0.02, 0.98}]; cr = Quantile[cs, {0.02, 0.98}];
    inr = Select[pts, dr[[1]] <= #[[2]] <= dr[[2]] && cr[[1]] <= #[[4]] <= cr[[2]] &];
    Legended[
-     Graphics[Table[Tooltip[{cf[p[[6]]], PointSize[0.011], Point[{p[[2]], p[[4]]}]},
+     Graphics[Table[Tooltip[Hyperlink[{cf[p[[6]]], PointSize[0.011], Point[{p[[2]], p[[4]]}]}, url[p[[1]]]],
          Column[{Style[p[[1]], Bold], Row[{"dim ", Around[p[[2]], p[[3]]], "   curv ", Around[p[[4]], p[[5]]]}]}]], {p, inr}],
       Frame -> True, FrameLabel -> {"Dimension", "Curvature"}, PlotRange -> {dr, cr}, Background -> White,
       ImageSize -> 640, AspectRatio -> 1/GoldenRatio],
@@ -69,7 +69,7 @@ mt[m_] := {{m, If[Abs[N@m] >= 10, Round[m], Round[N@m, 0.1]]}};
 (* per-generation dimension/curvature: index-based quotients -> windowed paclet fit (Around-valued
    Growths carry their spread to Around d / R); Missing on generations too short to fit *)
 dimcurvSeq[rec_] :=
-  (If[Length[#] < 2, Missing[], DimensionCurvatureFit[#, Range[Length[#]]]] &) /@ (LogDifferenceQuotients /@ rec["Growths"]);
+  (If[Length[#] < 2, Missing[], DimensionCurvatureFit[Transpose[{Range[Length[#]], #}]]] &) /@ (LogDifferenceQuotients /@ rec["Growths"]);
 numAssocQ = AssociationQ[#] && numQ[#["Dimension"]] && numQ[#["ScalarCurvature"]] &;
 lastFit[rec_] :=
   Module[{dc = Select[dimcurvSeq[rec], numAssocQ]}, If[dc === {}, Missing[], Last[dc]]];
