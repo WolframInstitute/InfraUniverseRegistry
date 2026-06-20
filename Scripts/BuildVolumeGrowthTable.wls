@@ -1,79 +1,31 @@
-(* BuildVolumeGrowthTable - per-rule Volume-Growth table data + the Table notebook's display defs.
-   Get-loaded by GenerateVolumeGrowthNotebooks.wls, which (1) calls buildVolumeGrowthTable[raw, ids,
-   columns] for the featured rows and volumeGrowthScalars for every rule, and (2) lifts the paclet-free
-   block between DISPLAY-BEGIN/DISPLAY-END verbatim into the self-contained Table notebook.  Geometry is
-   the WolframInstitute`Infrageometry` paclet (BallVolumes / LogDifferenceQuotients / DimensionCurvatureFit,
-   window = Automatic).  raw[id] is one record of Data/AverageVolumeGrowths.wxf :: <|"Growths",
-   "VertexCounts", "EdgeCounts", "Diameters", "FinalState", ...|>.  thumbOpts and finalStateThumb are
-   overridable after loading (the generator bumps them to big sizes for the 20 featured rows). *)
+(* BuildVolumeGrowthTable - per-rule Volume-Growth table data. Get-loaded by
+   GenerateVolumeGrowthNotebooks.wls. All formatting (Hyperlinks, rounding, dashes, thumbnails,
+   column names) happens HERE so the notebook needs no helper functions - just the baked data
+   (allRules = scalar metrics for every rule, exampleRules = fully-formatted display rows for the
+   featured rules) + inline Dataset/Graphics. The inline landscape code lives in the
+   LANDSCAPE-BEGIN/END comment and is lifted verbatim into the notebook by the generator (it uses
+   the baked allRules + exampleRules). Geometry: WolframInstitute`Infrageometry` (BallVolumes,
+   LogDifferenceQuotients, DimensionCurvatureFit) + Hypergraph2Section. thumbOpts and finalStateThumb
+   are overridable (the generator bumps them to big sizes for the featured thumbnails). *)
 
 Needs["WolframInstitute`Infrageometry`"];
 Needs["SetReplace`"];
 
-(* ===== Display defs: paclet-free; each takes its data as an argument.  The generator copies this
-   block verbatim into the Table notebook (which embeds featuredRows / scalarData as Uncompress blobs
-   above it), so the cloud notebook needs no paclet and no external files. ===== *)
-(* DISPLAY-BEGIN *)
-url[id_] := "https://www.wolframphysics.org/universes/" <> id <> "/";
-dash = Style["\[LongDash]", GrayLevel[0.55], 20];
-ar[v_, e_] := If[NumericQ[v], Around[v, e], dash];
-rnd[x_, d_] := If[NumericQ[x], Round[x, d], dash];
-headerTips = <|"Rule" -> "Rule Name", "State" -> "Final State", "Generation" -> "Final Generation",
-   "Edges" -> "Final Edge Count", "Vertices" -> "Final Vertex Count",
-   "Vertex Growth" -> "Vertex-count growth rate per generation (0 static, + expanding, - shrinking)",
-   "Vertices/gen" -> "Vertex count per iteration", "Diameter" -> "Final Graph Diameter",
-   "Diameter Growth" -> "Diameter growth rate per generation (0 static, + expanding, - shrinking)",
-   "Diameter/gen" -> "Graph diameter per iteration", "Graph Dimension" -> "Final Graph Dimension = log V / log D",
-   "Dimension" -> "Final Ball Growth Dimension (volume-growth fit)", "Dimensions" -> "Ball growth dimension per iteration",
-   "Curvature" -> "Final Ball Growth Curvature (volume-growth fit)", "Curvatures" -> "Ball growth curvature per iteration",
-   "Volume Growth" -> "Ball Volume Growth per iteration", "Log Diff Q" -> "Log Difference Quotients q(r) = d log V / d log r",
-   "Stability Score" -> "Stability Score = 1/(1 + tail diameter); higher = more converged"|>;
-defaultColumns = {"Rule", "State", "Generation", "Edges", "Vertices", "Vertex Growth", "Vertices/gen", "Diameter",
-   "Diameter Growth", "Diameter/gen", "Graph Dimension", "Dimension", "Dimensions", "Curvature", "Curvatures",
-   "Volume Growth", "Log Diff Q", "Stability Score"};
-row[rows_, id_] := With[{r = rows[id]}, <|"Rule" -> Hyperlink[id, url[id]], "State" -> r["StateThumb"],
-   "Generation" -> r["Generation"], "Edges" -> r["Edges"], "Vertices" -> r["Vertices"],
-   "Vertex Growth" -> rnd[r["VertexGrowth"], 0.1], "Vertices/gen" -> r["VertexThumb"],
-   "Diameter" -> r["Diameter"], "Diameter Growth" -> rnd[r["DiameterGrowth"], 0.01], "Diameter/gen" -> r["DiameterThumb"],
-   "Graph Dimension" -> rnd[r["GraphDimension"], 0.01], "Dimension" -> ar[r["Dimension"], r["DimensionError"]], "Dimensions" -> r["DimThumb"],
-   "Curvature" -> ar[r["Curvature"], r["CurvatureError"]], "Curvatures" -> r["CurvThumb"],
-   "Volume Growth" -> r["VolumeThumb"], "Log Diff Q" -> r["LDQThumb"], "Stability Score" -> rnd[r["StabilityScore"], 0.001]|>];
-buildTable[rows_, ids_ : Automatic, cols_ : defaultColumns] := Dataset[(KeyTake[row[rows, #], cols]) & /@ Replace[ids, Automatic :> Keys[rows]],
-   Alignment -> {Center, Center}, MaxItems -> {25, All}, ItemStyle -> {FontSize -> 15}, HeaderStyle -> Directive[FontSize -> 15, Bold],
-   HeaderDisplayFunction -> (Tooltip[#, Lookup[headerTips, #, #]] &)];
-queryData[scalars_] := Dataset[scalars];
-landscape[scalars_, rows_ : <||>] := Module[{cf, pts, ds, cs, dr, cr, inr},
-   cf = Blend[{StandardGray, StandardGreen}, #] &;
-   pts = Select[{#1, #2["Dimension"], #2["DimensionError"], #2["Curvature"], #2["CurvatureError"], #2["StabilityScore"]} & @@@ Normal[scalars],
-      NumericQ[#[[2]]] && NumericQ[#[[4]]] && NumericQ[#[[6]]] &];
-   ds = pts[[All, 2]]; cs = pts[[All, 4]];
-   dr = Quantile[ds, {0.02, 0.98}]; cr = Quantile[cs, {0.02, 0.98}];
-   inr = Select[pts, dr[[1]] <= #[[2]] <= dr[[2]] && cr[[1]] <= #[[4]] <= cr[[2]] &];
-   Legended[
-     Graphics[Table[Tooltip[Hyperlink[{cf[p[[6]]], PointSize[0.011], Point[{p[[2]], p[[4]]}]}, url[p[[1]]]],
-         Column[{Style[p[[1]], Bold], Row[{"dim ", Around[p[[2]], p[[3]]], "   curv ", Around[p[[4]], p[[5]]]}],
-            Replace[rows[p[[1]]]["StateThumb"], Except[_?ImageQ] -> Nothing]}]], {p, inr}],
-      Frame -> True, FrameLabel -> {"Dimension", "Curvature"}, PlotRange -> {dr, cr}, Background -> White,
-      ImageSize -> 640, AspectRatio -> 1/GoldenRatio],
-     BarLegend[{cf, {0, 1}}, LegendLabel -> "Stability Score", LegendMarkerSize -> 300]]];
-(* DISPLAY-END *)
-
-(* ===== Generation: per-rule scalars + baked thumbnails (uses the paclet + the display dash). ===== *)
 strip = # /. Around[a_, _] :> a &;
 numQ = NumericQ[# /. Around[a_, _] :> a] &;
+dash = Style["\[LongDash]", GrayLevel[0.55], 20];
+url[id_] := "https://www.wolframphysics.org/universes/" <> id <> "/";
+ar[v_, e_] := If[NumericQ[v], Around[v, e], dash];
+rnd[x_, d_] := If[NumericQ[x], Round[x, d], dash];
 slope[ys_] :=
-  With[{n = Length[ys]},
-   If[n < 2, 0., Module[{x = Range[n]}, N[(n Total[x ys] - Total[x] Total[ys]) / (n Total[x^2] - Total[x]^2)]]]];
+  With[{n = Length[ys]}, If[n < 2, 0., Module[{x = Range[n]}, N[(n Total[x ys] - Total[x] Total[ys]) / (n Total[x^2] - Total[x]^2)]]]];
 seriesColors[n_, c1_, c2_] := Blend[{c1, c2}, #] & /@ Subdivide[0., 1., Max[n - 1, 1]];
 mt[m_] := {{m, If[Abs[N@m] >= 10, Round[m], Round[N@m, 0.1]]}};
 
-(* per-generation dimension/curvature: index-based quotients -> windowed paclet fit (Around-valued
-   Growths carry their spread to Around d / R); Missing on generations too short to fit *)
 dimcurvSeq[rec_] :=
   (If[Length[#] < 2, Missing[], DimensionCurvatureFit[Transpose[{Range[Length[#]], #}]]] &) /@ (LogDifferenceQuotients /@ rec["Growths"]);
 numAssocQ = AssociationQ[#] && numQ[#["Dimension"]] && numQ[#["ScalarCurvature"]] &;
-lastFit[rec_] :=
-  Module[{dc = Select[dimcurvSeq[rec], numAssocQ]}, If[dc === {}, Missing[], Last[dc]]];
+lastFit[rec_] := Module[{dc = Select[dimcurvSeq[rec], numAssocQ]}, If[dc === {}, Missing[], Last[dc]]];
 dimension[rec_] := Replace[lastFit[rec], {a_?AssociationQ :> strip[a["Dimension"]], _ :> Missing[]}];
 dimensionError[rec_] := Replace[lastFit[rec], {a_?AssociationQ :> Replace[a["Dimension"], {Around[_, e_] :> e, _ :> 0.}], _ :> Missing[]}];
 curvature[rec_] := Replace[lastFit[rec], {a_?AssociationQ :> strip[a["ScalarCurvature"]], _ :> Missing[]}];
@@ -84,8 +36,7 @@ stabilityScore[rec_] :=
    tail = If[Length[pts] >= 2, Take[pts, -Ceiling[Length[pts]/3]], {}];
    If[Length[tail] >= 2, 1./(1. + Max[EuclideanDistance @@@ Subsets[tail, {2}]]), Missing[]]];
 finalDiameter[rec_] := Last[rec["Diameters"]];
-graphDimension[rec_] :=
-  With[{v = Last[rec["VertexCounts"]], d = finalDiameter[rec]}, If[TrueQ[d > 1], Log[v]/Log[d], Missing[]]];
+globalDimension[rec_] := With[{v = Last[rec["VertexCounts"]], d = finalDiameter[rec]}, If[TrueQ[d > 1], Log[v]/Log[d], Missing[]]];
 diameterGrowth[rec_] := slope[rec["Diameters"]];
 vertexGrowth[rec_] := slope[rec["VertexCounts"]];
 
@@ -126,26 +77,48 @@ diameterThumb[rec_] :=
 finalStateThumb[rec_] :=
   TimeConstrained[Quiet @ Rasterize[WolframModelPlot[rec["FinalState"], ImageSize -> {UpTo[140], UpTo[140]}], ImageResolution -> 72], 90, dash];
 
-columnFields = <|"Rule" -> {}, "State" -> {"StateThumb"}, "Generation" -> {"Generation"}, "Edges" -> {"Edges"},
-   "Vertices" -> {"Vertices"}, "Vertex Growth" -> {"VertexGrowth"}, "Vertices/gen" -> {"VertexThumb"},
-   "Diameter" -> {"Diameter"}, "Diameter Growth" -> {"DiameterGrowth"}, "Diameter/gen" -> {"DiameterThumb"},
-   "Graph Dimension" -> {"GraphDimension"}, "Dimension" -> {"Dimension", "DimensionError"}, "Dimensions" -> {"DimThumb"},
-   "Curvature" -> {"Curvature", "CurvatureError"}, "Curvatures" -> {"CurvThumb"}, "Volume Growth" -> {"VolumeThumb"},
-   "Log Diff Q" -> {"LDQThumb"}, "Stability Score" -> {"StabilityScore"}|>;
-fieldFn = <|"Generation" -> (Length[#["VertexCounts"]] &), "Edges" -> (Length[#["FinalState"]] &),
-   "Vertices" -> (Last[#["VertexCounts"]] &), "VertexGrowth" -> vertexGrowth, "Diameter" -> finalDiameter,
-   "DiameterGrowth" -> diameterGrowth, "GraphDimension" -> graphDimension, "Dimension" -> dimension,
-   "DimensionError" -> dimensionError, "Curvature" -> curvature, "CurvatureError" -> curvatureError,
-   "StabilityScore" -> stabilityScore, "StateThumb" -> finalStateThumb, "VolumeThumb" -> growthThumb,
-   "LDQThumb" -> ldqThumb, "DimThumb" -> dimensionThumb, "CurvThumb" -> curvatureThumb,
-   "VertexThumb" -> vertexThumb, "DiameterThumb" -> diameterThumb|>;
-
-volumeGrowthRow[rec_, columns_] :=
-  AssociationMap[fieldFn[#][rec] &, Union @ Flatten[Lookup[columnFields, columns, {}]]];
-buildVolumeGrowthTable[raw_, ids_, columns_ : Automatic] :=
-  With[{cols = Replace[columns, Automatic :> defaultColumns]}, Association[(# -> volumeGrowthRow[raw[#], cols]) & /@ ids]];
+(* per-rule scalar metrics -> baked as allRules (drives the landscape + queries) *)
 volumeGrowthScalars[rec_] :=
   <|"Dimension" -> dimension[rec], "DimensionError" -> dimensionError[rec], "Curvature" -> curvature[rec],
     "CurvatureError" -> curvatureError[rec], "Vertices" -> Last[rec["VertexCounts"]], "Diameter" -> finalDiameter[rec],
-    "GraphDimension" -> graphDimension[rec], "DiameterGrowth" -> diameterGrowth[rec], "VertexGrowth" -> vertexGrowth[rec],
+    "GlobalDimension" -> globalDimension[rec], "DiameterGrowth" -> diameterGrowth[rec], "VertexGrowth" -> vertexGrowth[rec],
     "StabilityScore" -> stabilityScore[rec]|>;
+
+(* fully-formatted display row for a featured rule -> baked as exampleRules; the notebook table cell
+   is just Dataset[Values @ exampleRules] - no helpers, no formatting at display time *)
+exampleRow[id_, rec_] :=
+  <|"Rule" -> Hyperlink[id, url[id]], "State" -> finalStateThumb[rec],
+    "Generation" -> Length[rec["VertexCounts"]], "Edges" -> Length[rec["FinalState"]], "Vertices" -> Last[rec["VertexCounts"]],
+    "Vertex Growth" -> rnd[vertexGrowth[rec], 0.1], "Vertices/gen" -> vertexThumb[rec],
+    "Diameter" -> finalDiameter[rec], "Diameter Growth" -> rnd[diameterGrowth[rec], 0.01], "Diameter/gen" -> diameterThumb[rec],
+    "Global Dimension" -> rnd[globalDimension[rec], 0.01], "Dimension" -> ar[dimension[rec], dimensionError[rec]], "Dimensions" -> dimensionThumb[rec],
+    "Curvature" -> ar[curvature[rec], curvatureError[rec]], "Curvatures" -> curvatureThumb[rec],
+    "Volume Growth" -> growthThumb[rec], "Log Diff Q" -> ldqThumb[rec], "Stability Score" -> rnd[stabilityScore[rec], 0.001]|>;
+buildExampleRules[raw_, ids_] := Association[(# -> exampleRow[#, raw[#]]) & /@ ids];
+
+(* LANDSCAPE-BEGIN  (lifted verbatim into the notebook; self-contained over the baked allRules + exampleRules)
+With[{pts = Select[{#1, #2["Dimension"], #2["DimensionError"], #2["Curvature"], #2["CurvatureError"], #2["StabilityScore"]} & @@@ Normal[allRules],
+     NumericQ[#[[2]]] && NumericQ[#[[4]]] && NumericQ[#[[6]]] &]},
+  Module[{ds = pts[[All, 2]], cs = pts[[All, 4]], dr, cr, inr, ssr, cf, col, mk, tip, ovr},
+   dr = Quantile[ds, {0.03, 0.97}]; cr = Quantile[cs, {0.03, 0.97}];
+   inr = Select[pts, dr[[1]] <= #[[2]] <= dr[[2]] && cr[[1]] <= #[[4]] <= cr[[2]] &];
+   ssr = Quantile[pts[[All, 6]], {0.05, 0.95}];
+   cf = Blend[{StandardGray, StandardGreen}, #] &;
+   col[s_] := cf[Clip[Rescale[s, ssr], {0, 1}]];
+   mk[p_] := {col[p[[6]]], PointSize[0.006], Point[{p[[2]], p[[4]]}]};
+   tip[p_] := Column[{Style[p[[1]], Bold], Row[{"dim ", Around[p[[2]], p[[3]]], "   curv ", Around[p[[4]], p[[5]]]}],
+      Replace[exampleRules[p[[1]]]["State"], Except[_?ImageQ] -> Nothing]}, Center];
+   ovr = Graphics[{StandardGray, PointSize[0.0035], Point[pts[[All, {2, 4}]]],
+       Directive[StandardRed, AbsoluteThickness[1.5]], Line[{{dr[[1]], cr[[1]]}, {dr[[2]], cr[[1]]}, {dr[[2]], cr[[2]]}, {dr[[1]], cr[[2]]}, {dr[[1]], cr[[1]]}}]},
+      Frame -> True, FrameLabel -> {"Dimension", "Curvature"}, Background -> White, ImageSize -> 360, AspectRatio -> 1/GoldenRatio,
+      PlotRange -> {Quantile[ds, {0.002, 0.998}], Quantile[cs, {0.002, 0.998}]},
+      PlotLabel -> Style["all rules; red box = region at left", 11]];
+   Row[{
+     Legended[
+       Graphics[Table[Tooltip[Hyperlink[mk[p], "https://www.wolframphysics.org/universes/" <> p[[1]] <> "/"], tip[p]], {p, inr}],
+        Frame -> True, FrameLabel -> {"Dimension", "Curvature"}, PlotRange -> {dr, cr}, Background -> White,
+        ImageSize -> 640, AspectRatio -> 1/GoldenRatio,
+        PlotLabel -> Style["3\[Dash]97% quantile per axis", 12]],
+       BarLegend[{cf, ssr}, LegendLabel -> "Stability Score", LegendMarkerSize -> 200]],
+     Spacer[20], ovr}]]]
+LANDSCAPE-END *)
