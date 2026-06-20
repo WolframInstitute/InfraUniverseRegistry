@@ -2,16 +2,19 @@
 (* Build the raw data: evolve every registry rule and measure the averaged ball-volume growth.
    Writes Data/AverageVolumeGrowths.wxf :: <|id -> <|Growths, VertexCounts, EdgeCounts,
    Diameters, FinalState|>|>. Volumes are computed generation-by-generation and kept for every
-   generation that fits the per-generation time cap; heavy rules are kept Partial. Half the
-   cores, atomic saves, resumable. Usage: wolframscript -file VolumeGrowth_Compute.wls [nRules] *)
+   generation that fits the per-generation time cap; heavy rules are kept Partial. Geometry is the
+   WolframInstitute`Infrageometry` paclet (Hypergraph2Section + BallVolumes "Counting"); the per-radius
+   value is the geometric mean over centers Exp[MeanAround[Log V]]. Half the cores, atomic saves,
+   resumable. Usage: wolframscript -file ComputeVolumeGrowths.wls [nRules] *)
 
 Needs["SetReplace`"];
+Needs["WolframInstitute`Infrageometry`"];
 wmd = ResourceFunction["WolframModelData"];
 volumes[state_] :=
-  Module[{graph = Graph[DeleteCases[UndirectedEdge[a_, a_]][DeleteDuplicates[UndirectedEdge @@@ Catenate[Subsets[#, {2}] & /@ state]]]], dm, maxR},
+  Module[{graph = Hypergraph2Section[state], vols},
    If[VertexCount[graph] < 2, Return[{Around[1, 0]}]];
-   dm = GraphDistanceMatrix[graph]; maxR = Max[DeleteCases[Flatten[dm], Infinity]];
-   Exp[Around[Mean[Log[#]], If[Length[#] > 1, StandardDeviation[Log[#]], 0.]]] & /@ Transpose[Accumulate[BinCounts[# /. Infinity -> maxR + 2, {0, maxR + 1, 1}]] & /@ dm]];
+   vols = BallVolumes[graph, All, All, "Measure" -> "Counting"];
+   Exp[MeanAround[Log[#]]] & /@ Transpose[PadRight[#, Max[Length /@ vols], Last[#]] & /@ vols]];
 compute[spec_] :=
   Module[{s, g = {}, vcs = {}, ecs = {}, dias = {}, v},
    s = TimeConstrained[Rest[WolframModel[spec[[2]]["Rule"], spec[[2]]["InitialCondition"],
@@ -33,7 +36,7 @@ nRules = If[Length[$ScriptCommandLine] > 1, ToExpression[$ScriptCommandLine[[2]]
 cleanQ[a_] := AssociationQ[a] && (KeyExistsQ[a, "Growths"] || TrueQ[a["Failed"]]);
 
 nk = Max[2, Floor[$ProcessorCount/2]];
-LaunchKernels[nk]; ParallelEvaluate[Needs["SetReplace`"]]; DistributeDefinitions[volumes, compute];
+LaunchKernels[nk]; ParallelEvaluate[Needs["SetReplace`"]; Needs["WolframInstitute`Infrageometry`"]]; DistributeDefinitions[volumes, compute];
 allids = If[nRules === All, wmd[], wmd[][[ ;; UpTo[nRules] ]]];
 Print["[", DateString["ISODateTime"], "] metadata for ", Length@allids, " rules..."];
 specs = Select[Transpose[{allids, wmd[allids, All]}], MatchQ[#[[2]]["Rule"], {(_Rule | _RuleDelayed) ..}] &];
