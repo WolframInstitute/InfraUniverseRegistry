@@ -3,23 +3,14 @@
 ## Initialization
 
 ```wolfram
-Needs["WolframInstitute`Infrageometry`"];
+Needs[ "WolframInstitute`Infrageometry`" ];
 
 ruleName = "wm3382";
 
-states = Rest @ ResourceFunction["WolframModel"][{{{1, 2}, {1, 3}} -> {{2, 3}, {2, 4}, {3, 4}, {1, 2}}}, {{1, 1}, {1, 1}},
-    <|"MaxGenerations" -> 14, "MaxVertices" -> 5000, "MaxEvents" -> 100000|>]["StatesList"];
+states = Rest @ ResourceFunction[ "WolframModel" ][ {{{1, 2}, {1, 3}} -> {{2, 3}, {2, 4}, {3, 4}, {1, 2}}}, {{1, 1}, {1, 1}},
+    <| "MaxGenerations" -> 14, "MaxVertices" -> 5000, "MaxEvents" -> 100000 |> ][ "StatesList" ];
 
 graphs = Hypergraph2Section /@ states;
-
-ballValues = With[{vols = BallVolumes[#, All, All, "Measure" -> "Counting"]},
-     Transpose[PadRight[#, Max[Length /@ vols], Last[#]] & /@ vols]] & /@ graphs;
-
-ballVolumes = Map[Around[Mean[#], StandardDeviation[#]] &, ballValues, {2}];
-
-meanVolumes = Map[Exp[MeanAround[Log[#]]] &, ballValues, {2}];
-
-dimensionCurvature = With[{q = LogDifferenceQuotients[#]}, If[Length[q] < 2, Missing[], DimensionCurvatureFit[Transpose[{Range[Length[q]], q}]]]] & /@ meanVolumes;
 ```
 
 ## Generations
@@ -33,6 +24,13 @@ GraphicsGrid[Partition[ResourceFunction["WolframModelPlot"][#, ImageSize -> {UpT
 Pointwise volume growth (mean ± σ).
 
 ```wolfram
+ballValues = With[ { vols = BallVolumes[ #, All, All, "Measure" -> "Counting" ] },
+     Transpose[ PadRight[ #, Max[ Length /@ vols ], Last[ # ] ] & /@ vols ] ] & /@ graphs;
+
+ballVolumes = Map[ Around[ Mean[ # ], StandardDeviation[ # ] ] &, ballValues, { 2 } ];
+```
+
+```wolfram
 ListLinePlot[ballVolumes, PlotStyle -> (Directive[AbsoluteThickness[2], #] & /@ (Blend[{StandardYellow, StandardRed}, #] & /@ Subdivide[0., 1., Max[Length[ballVolumes] - 1, 1]])), IntervalMarkers -> "Bars", Mesh -> All, Frame -> True, FrameLabel -> {"Radius", "Ball Volume"}, ImageSize -> 460, PlotRange -> All]
 ```
 
@@ -41,12 +39,20 @@ ListLinePlot[ballVolumes, PlotStyle -> (Directive[AbsoluteThickness[2], #] & /@ 
 Log-difference quotient of the mean volume growth (mean ± σ/Sqrt[vertex count]).
 
 ```wolfram
+meanVolumes = Map[ Exp[ MeanAround[ Log[ # ] ] ] &, ballValues, { 2 } ];
+```
+
+```wolfram
 ListLinePlot[LogDifferenceQuotients /@ meanVolumes, PlotStyle -> (Directive[AbsoluteThickness[2], #] & /@ (Blend[{StandardYellow, StandardGreen}, #] & /@ Subdivide[0., 1., Max[Length[meanVolumes] - 1, 1]])), IntervalMarkers -> "Bars", Mesh -> All, Frame -> True, FrameLabel -> {"Radius", "Log Difference Quotient"}, ImageSize -> 460, PlotRange -> All]
 ```
 
 ## Dimension and Curvature
 
 Dimension and curvature from the mean volume growth.
+
+```wolfram
+dimensionCurvature = With[ { quotients = LogDifferenceQuotients[ # ] }, If[ Length[ quotients ] < 2, Missing[], DimensionCurvatureFit[ Transpose[ { Range[ Length[ quotients ] ], quotients } ] ] ] ] & /@ meanVolumes;
+```
 
 ```wolfram
 GraphicsRow[{ListLinePlot[MapIndexed[If[AssociationQ[#1], {First[#2], #1["Dimension"]}, Nothing] &, dimensionCurvature], PlotStyle -> StandardBlue, Mesh -> All, IntervalMarkers -> "Bars", IntervalMarkersStyle -> StandardBlue, Frame -> True, FrameLabel -> {"Generation", "Dimension"}], ListLinePlot[MapIndexed[If[AssociationQ[#1], {First[#2], #1["ScalarCurvature"]}, Nothing] &, dimensionCurvature], PlotStyle -> StandardPurple, Mesh -> All, IntervalMarkers -> "Bars", IntervalMarkersStyle -> StandardPurple, Frame -> True, FrameLabel -> {"Generation", "Curvature"}]}, ImageSize -> 640]

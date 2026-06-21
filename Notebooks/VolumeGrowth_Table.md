@@ -13,33 +13,31 @@ allRules = Uncompress["1:eJzsnQlYjVvbx9OoaB5UikaEor0bVVQqlKIyZiyFUqKkSJQQFZpQIUk
 ```wolfram
 With[{pts = Select[{#1, #2["Dimension"], #2["DimensionError"], #2["Curvature"], #2["CurvatureError"], #2["StabilityScore"]} & @@@ Normal[allRules],
      NumericQ[#[[2]]] && NumericQ[#[[4]]] && NumericQ[#[[6]]] &]},
-  Module[{ds = pts[[All, 2]], cs = pts[[All, 4]], dr, cr, inr, ssr, cf, col, mk, tip, ovr},
+  Module[{ds = pts[[All, 2]], cs = pts[[All, 4]], scores = pts[[All, 6]], dr, cr, inr, cf, col, mk, tip, url, box},
    dr = Quantile[ds, {0.03, 0.97}]; cr = Quantile[cs, {0.03, 0.97}];
    inr = Select[pts, dr[[1]] <= #[[2]] <= dr[[2]] && cr[[1]] <= #[[4]] <= cr[[2]] &];
-   ssr = Quantile[pts[[All, 6]], {0.05, 0.95}];
    cf = Blend[{StandardGray, StandardGreen}, #] &;
-   col[s_] := cf[Clip[Rescale[s, ssr], {0, 1}]];
-   mk[p_] := {col[p[[6]]], PointSize[0.006], Point[{p[[2]], p[[4]]}]};
+   col[s_] := cf[Mean @ UnitStep[s - scores]];
+   mk[p_, sz_] := {col[p[[6]]], PointSize[sz], Point[{p[[2]], p[[4]]}]};
+   url[p_] := "https://www.wolframphysics.org/universes/" <> p[[1]] <> "/";
    tip[p_] := Column[{Style[p[[1]], Bold], Row[{"dim ", Around[p[[2]], p[[3]]], "   curv ", Around[p[[4]], p[[5]]]}],
       Replace[exampleRules[p[[1]]]["State"], Except[_?ImageQ] -> Nothing]}, Center];
-   ovr = Graphics[{StandardGray, PointSize[0.0035], Point[pts[[All, {2, 4}]]],
-       Directive[StandardRed, AbsoluteThickness[1.5]], Line[{{dr[[1]], cr[[1]]}, {dr[[2]], cr[[1]]}, {dr[[2]], cr[[2]]}, {dr[[1]], cr[[2]]}, {dr[[1]], cr[[1]]}}]},
-      Frame -> True, FrameLabel -> {"Dimension", "Curvature"}, Background -> White, ImageSize -> 360, AspectRatio -> 1/GoldenRatio,
-      PlotRange -> {Quantile[ds, {0.002, 0.998}], Quantile[cs, {0.002, 0.998}]},
-      PlotLabel -> Style["all rules; red box = region at left", 11]];
-   Row[{
-     Legended[
-       Graphics[Table[Tooltip[Hyperlink[mk[p], "https://www.wolframphysics.org/universes/" <> p[[1]] <> "/"], tip[p]], {p, inr}],
-        Frame -> True, FrameLabel -> {"Dimension", "Curvature"}, PlotRange -> {dr, cr}, Background -> White,
-        ImageSize -> 640, AspectRatio -> 1/GoldenRatio,
-        PlotLabel -> Style["3\[Dash]97% quantile per axis", 12]],
-       BarLegend[{cf, ssr}, LegendLabel -> "Stability Score", LegendMarkerSize -> 200]],
-     Spacer[20], ovr}]]]
+   box = {Directive[StandardRed, AbsoluteThickness[1.5]], Line[{{dr[[1]], cr[[1]]}, {dr[[2]], cr[[1]]}, {dr[[2]], cr[[2]]}, {dr[[1]], cr[[2]]}, {dr[[1]], cr[[1]]}}]};
+   Legended[
+     Row[{
+       Graphics[{Table[Tooltip[Hyperlink[mk[p, 0.004], url[p]], tip[p]], {p, pts}], box},
+         Frame -> True, FrameLabel -> {"Dimension", "Curvature"}, Background -> White, ImageSize -> 380, AspectRatio -> 1/GoldenRatio,
+         PlotRange -> {Quantile[ds, {0.002, 0.998}], Quantile[cs, {0.002, 0.998}]},
+         PlotLabel -> Style["all rules (red box \[RightArrow] detail)", 12]],
+       Spacer[20],
+       Graphics[Table[Tooltip[Hyperlink[mk[p, 0.006], url[p]], tip[p]], {p, inr}],
+         Frame -> True, FrameLabel -> {"Dimension", "Curvature"}, PlotRange -> {dr, cr}, Background -> White,
+         ImageSize -> 640, AspectRatio -> 1/GoldenRatio,
+         PlotLabel -> Style["detail (outliers clipped)", 12]]}],
+     BarLegend[{cf, {0, 1}}, LegendLabel -> "Stability rank", LegendMarkerSize -> 200]]]]
 ```
 
 ## Featured Rules
-
-Example rules – the 20 largest / most-stable (a curated subset).
 
 ```wolfram
 Dataset[Values @ exampleRules, Alignment -> {Center, Center}, MaxItems -> {25, All}, ItemStyle -> {FontSize -> 15}, HeaderStyle -> Directive[FontSize -> 15, Bold]]
@@ -48,6 +46,12 @@ Dataset[Values @ exampleRules, Alignment -> {Center, Center}, MaxItems -> {25, A
 ## Queries
 
 Over all rules' scalar metrics (not just the example rows).
+
+### Dataset[allRules][TakeLargestBy[StabilityScore × Vertices, 20]]  (Featured Rules)
+
+```wolfram
+Dataset[allRules][Select[NumericQ[#StabilityScore] && NumericQ[#Vertices] &]][TakeLargestBy[#StabilityScore #Vertices &, 20]]
+```
 
 ### Dimension 2.5-3.5, near-flat curvature, at least 1000 vertices.
 
