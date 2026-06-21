@@ -31,9 +31,11 @@ and notebooks** — no `Code/` dir, no `.wl` library files; all reusable geometr
 ## Data
 
 `Data/AverageVolumeGrowths.wxf` (gitignored) :: `<| id -> <|"Growths" (per-generation ball-volume
-sequence, geometric mean over centers `Exp[MeanAround[Log V(r)]]` = mean with standard error of
-the mean), "VertexCounts", "EdgeCounts", "Diameters", "FinalState", "Partial"|> |>`. Derived
-scalars and thumbnails are never stored — `BuildVolumeGrowthTable.wls` recomputes them at
+sequence, geometric mean over centers `Exp[MeanAround[Log V(r)]]` = mean ± standard error of the
+mean σ/√n, used for the log-difference quotients / dimension-curvature fit), "VolumeMeans" (same
+sequence as arithmetic mean ± standard deviation `Around[Mean, StandardDeviation]`, used for the
+volume-growth plots), "VertexCounts", "EdgeCounts", "Diameters", "FinalState", "Partial"|> |>`.
+Derived scalars and thumbnails are never stored — `BuildVolumeGrowthTable.wls` recomputes them at
 generation time.
 
 ## Notebooks (both deployed Public to the Wolfram Cloud)

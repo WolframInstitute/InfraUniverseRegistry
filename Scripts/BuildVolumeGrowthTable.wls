@@ -44,7 +44,7 @@ thumbOpts = Sequence[ImageSize -> 104, AspectRatio -> 0.8, Frame -> True, PlotRa
    ImagePadding -> {{36, 5}, {22, 5}}, Background -> White, BaseStyle -> {FontSize -> 15},
    Mesh -> All, MeshStyle -> Directive[PointSize[0.016], Black]];
 growthThumb[rec_] :=
-  Module[{vol = rec["Growths"], sv = strip[rec["Growths"]]},
+  Module[{vol = Lookup[rec, "VolumeMeans", rec["Growths"]], sv = strip[Lookup[rec, "VolumeMeans", rec["Growths"]]]},
    If[Max[Length /@ sv] < 2, dash,
     Rasterize @ ListLinePlot[vol, PlotStyle -> (Directive[AbsoluteThickness[2], #] & /@ seriesColors[Length[vol], StandardYellow, StandardRed]),
       IntervalMarkers -> "Bars", FrameTicks -> {{mt[Max[Flatten[sv]]], None}, {mt[Max[Length /@ sv]], None}}, thumbOpts]]];
