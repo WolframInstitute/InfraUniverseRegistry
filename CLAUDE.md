@@ -1,5 +1,35 @@
 # InfraUniverseRegistry
 
+## Related repos
+
+This repo vendors no git submodules.
+The sibling repos are **not** cloned into this tree and must never be — a vendored copy
+goes stale and then two versions of the same paclet disagree. Read them in place at the
+paths below.
+
+| Paclet | Repo, relative to this one | Paclet dir inside it |
+|---|---|---|
+| Infrageometry | `../../SubProjectsMain/Infrageometry/` | `Infrageometry/Infrageometry/` |
+| SyntheticInfrageometry | `../../SubProjectsMain/SyntheticInfrageometry/` | `SyntheticInfrageometry/SyntheticInfrageometry/` |
+| InfraAnalysis | `../../SubProjectsOther/InfraAnalysis/` | `InfraAnalysis/InfraAnalysis/` |
+| InfraCausality | `../../SubProjectsOther/InfraCausality/` | `InfraCausality/InfraCausality/` |
+| InfraGaugeTheory | `../../SubProjectsOther/InfraGaugeTheory/` | `InfraGaugeTheory/` |
+| InfraElements | `../InfraElements/` | — *public paclet repo directly, no `Dev` wrapper* |
+
+To use another paclet, prefer the **installed** copy — all of them are in
+`~/Library/Wolfram/Paclets/Repository/`, so a plain load works with no path at all:
+
+```wolfram
+Needs["WolframInstitute`Infrageometry`"]
+```
+
+Reach for a dev checkout only when you need changes that are not published yet, and then
+point at the sibling path rather than copying it here:
+
+```wolfram
+PacletDirectoryLoad @ FileNameJoin[ { $repoRoot, "..", "..", "SubProjectsMain", "Infrageometry", "Infrageometry" } ]
+```
+
 Horizontal infrageometric study across the Wolfram notable-universe registry (~947 rules):
 ball-volume growth → dimension and scalar curvature per rule, plus vertex/edge/diameter growth
 and a geometric Stability Score. Research/exploratory code. The project is **only `.wls` scripts
