@@ -9,8 +9,8 @@ paths below.
 
 | Paclet | Repo, relative to this one | Paclet dir inside it |
 |---|---|---|
-| Infrageometry | `../../SubProjectsMain/Infrageometry/` | `Infrageometry/Infrageometry/` |
-| SyntheticInfrageometry | `../../SubProjectsMain/SyntheticInfrageometry/` | `SyntheticInfrageometry/SyntheticInfrageometry/` |
+| DiscreteGeometry | `../../SubProjectsMain/DiscreteGeometry/` | `DiscreteGeometry/DiscreteGeometry/` |
+| InfraGeometry | `../../SubProjectsMain/InfraGeometry/` | `InfraGeometry/InfraGeometry/` |
 | InfraAnalysis | `../../SubProjectsOther/InfraAnalysis/` | `InfraAnalysis/InfraAnalysis/` |
 | InfraCausality | `../../SubProjectsOther/InfraCausality/` | `InfraCausality/InfraCausality/` |
 | InfraGaugeTheory | `../../SubProjectsOther/InfraGaugeTheory/` | `InfraGaugeTheory/` |
@@ -20,22 +20,23 @@ To use another paclet, prefer the **installed** copy — all of them are in
 `~/Library/Wolfram/Paclets/Repository/`, so a plain load works with no path at all:
 
 ```wolfram
-Needs["WolframInstitute`Infrageometry`"]
+Needs["WolframInstitute`DiscreteGeometry`"]
 ```
 
 Reach for a dev checkout only when you need changes that are not published yet, and then
 point at the sibling path rather than copying it here:
 
 ```wolfram
-PacletDirectoryLoad @ FileNameJoin[ { $repoRoot, "..", "..", "SubProjectsMain", "Infrageometry", "Infrageometry" } ]
+PacletDirectoryLoad @ FileNameJoin[ { $repoRoot, "..", "..", "SubProjectsMain", "DiscreteGeometry", "DiscreteGeometry" } ]
 ```
 
 Horizontal infrageometric study across the Wolfram notable-universe registry (~947 rules):
 ball-volume growth → dimension and scalar curvature per rule, plus vertex/edge/diameter growth
 and a geometric Stability Score. Research/exploratory code. The project is **only `.wls` scripts
-and notebooks** — no `Code/` dir, no `.wl` library files; all reusable geometry comes from the
-`WolframInstitute`Infrageometry`` paclet (`Hypergraph2Section`, `BallVolumes`,
-`LogDifferenceQuotients`, `DimensionCurvatureFit`). Layout:
+and notebooks** — no `Code/` dir, no `.wl` library files; reusable geometry comes from
+`WolframInstitute`DiscreteGeometry`` (`Hypergraph2Section`) and `WolframInstitute`InfraGeometry``
+(`BallVolumes`, `LogDifferenceQuotients`, `DimensionCurvatureFit` — moved out of `Infrageometry`
+in the [PacletSplit](../../SubProjectsMain/InfraGeometry/Work/Active/PacletSplit.md)). Layout:
 
 - `Scripts/`
   - `ComputeVolumeGrowths.wls` — evolve every rule (`WolframModel`), measure the averaged
@@ -107,9 +108,10 @@ generation time.
 ## Gotcha
 
 - `DimensionCurvatureFit[q, radii, window]` (window auto-select) needs a paclet version that ships
-  that 3-arg signature; `Needs` loads the **highest** installed `WolframInstitute__Infrageometry-*`,
-  so make sure the highest one has it (not an older shadowing build).
-- The old `IndexHypergraph` shadow warning between `SetReplace`` and `WolframInstitute`Infrageometry``
+  that 3-arg signature; `Needs` loads the **highest** installed `WolframInstitute__InfraGeometry-*`
+  (the symbol lives there since PacletSplit T5, not in `Infrageometry`), so make sure the highest
+  one has it (not an older shadowing build).
+- The old `IndexHypergraph` shadow warning between `SetReplace`` and `WolframInstitute`DiscreteGeometry``
   is gone: Infrageometry no longer exports that symbol (inlined into `IndexComplex`, 2026-08-22), so
   `IndexHypergraph` unambiguously means SetReplace's (sorted) version. The two paclets now share no
   export names at all. Needs an Infrageometry newer than that date.

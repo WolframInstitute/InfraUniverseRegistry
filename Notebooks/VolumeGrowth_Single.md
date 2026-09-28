@@ -1,71 +1,82 @@
 # Volume Growth: Single Rule
 
-## Initialization
+## Initialization {closed}
 
-```wolfram
-Needs[ "WolframInstitute`Infrageometry`" ];
+```wolfram init
+Needs[ "WolframInstitute`DiscreteGeometry`" ];
+Needs[ "WolframInstitute`InfraGeometry`" ];
+```
 
-ruleName = "wm3382";
+## Generations
 
+```wolfram run
 states = Rest @ ResourceFunction[ "WolframModel" ][ {{{1, 2}, {1, 3}} -> {{2, 3}, {2, 4}, {3, 4}, {1, 2}}}, {{1, 1}, {1, 1}},
     <| "MaxGenerations" -> 14, "MaxVertices" -> 5000, "MaxEvents" -> 100000 |> ][ "StatesList" ];
 
 graphs = Hypergraph2Section /@ states;
 ```
 
-## Generations
-
-```wolfram
-GraphicsGrid[Partition[ResourceFunction["WolframModelPlot"][#, ImageSize -> {UpTo[120], UpTo[120]}] & /@ states, UpTo[5]]]
+```wolfram eval
+GraphicsGrid[ Partition[ ResourceFunction[ "WolframModelPlot" ][ #, ImageSize -> { UpTo[ 120 ], UpTo[ 120 ] } ] & /@ states, UpTo[ 5 ] ] ]
 ```
 
 ## Volume Growth
 
-Pointwise volume growth (mean ± σ).
+Volume of a ball of radius r in the shortest‑path metric, with respect to the counting measure.
+Plotted is the arithmetic mean and standard deviation computed across all graph vertices.
 
-```wolfram
+```wolfram run
 ballValues = With[ { vols = BallVolumes[ #, All, All, "Measure" -> "Counting" ] },
      Transpose[ PadRight[ #, Max[ Length /@ vols ], Last[ # ] ] & /@ vols ] ] & /@ graphs;
 
 ballVolumes = Map[ Around[ Mean[ # ], StandardDeviation[ # ] ] &, ballValues, { 2 } ];
 ```
 
-```wolfram
-ListLinePlot[ballVolumes, PlotStyle -> (Directive[AbsoluteThickness[2], #] & /@ (Blend[{StandardYellow, StandardRed}, #] & /@ Subdivide[0., 1., Max[Length[ballVolumes] - 1, 1]])), IntervalMarkers -> "Bars", Mesh -> All, Frame -> True, FrameLabel -> {"Radius", "Ball Volume"}, ImageSize -> 460, PlotRange -> All]
+```wolfram eval
+ListLinePlot[ ballVolumes, PlotStyle -> ( Directive[ AbsoluteThickness[ 2 ], # ] & /@ ( Blend[ { StandardYellow, StandardRed }, # ] & /@ Subdivide[ 0., 1., Max[ Length[ ballVolumes ] - 1, 1 ] ] ) ), IntervalMarkers -> "Bars", Mesh -> All, Frame -> True, FrameLabel -> { "Radius", "Ball Volume" }, ImageSize -> 460, PlotRange -> All ]
 ```
 
 ## Log Difference Quotients
 
-Log-difference quotient of the mean volume growth (mean ± σ/Sqrt[vertex count]).
+Forward log-difference quotient of the volume of a ball of radius r.
+Note that the counting measure of an r-ball corresponds to the Hausdorff measure of an (r+1)-ball up to boundary effects.
+The latter is the correct one, corresponding to the Riemannian volume.
+We take the mean of the log volumes, which corresponds to taking the log of the geometric mean of the volumes. We plot the standard error of the mean.
 
-```wolfram
+```wolfram run
 meanVolumes = Map[ Exp[ MeanAround[ Log[ # ] ] ] &, ballValues, { 2 } ];
 ```
 
-```wolfram
-ListLinePlot[LogDifferenceQuotients /@ meanVolumes, PlotStyle -> (Directive[AbsoluteThickness[2], #] & /@ (Blend[{StandardYellow, StandardGreen}, #] & /@ Subdivide[0., 1., Max[Length[meanVolumes] - 1, 1]])), IntervalMarkers -> "Bars", Mesh -> All, Frame -> True, FrameLabel -> {"Radius", "Log Difference Quotient"}, ImageSize -> 460, PlotRange -> All]
+```wolfram eval
+ListLinePlot[ LogDifferenceQuotients /@ meanVolumes, PlotStyle -> ( Directive[ AbsoluteThickness[ 2 ], # ] & /@ ( Blend[ { StandardYellow, StandardGreen }, # ] & /@ Subdivide[ 0., 1., Max[ Length[ meanVolumes ] - 1, 1 ] ] ) ), IntervalMarkers -> "Bars", Mesh -> All, Frame -> True, FrameLabel -> { "Radius", "Log Difference Quotient" }, ImageSize -> 460, PlotRange -> All ]
 ```
 
 ## Dimension and Curvature
 
-Dimension and curvature from the mean volume growth.
+Fit of the log‑difference quotients of volumes, restricted to an automatically determined window consisting of the maximal range of radii over which the linear regression error (in the least‑squares sense) is minimized.
 
-```wolfram
+```wolfram run
 dimensionCurvature = With[ { quotients = LogDifferenceQuotients[ # ] }, If[ Length[ quotients ] < 2, Missing[], DimensionCurvatureFit[ Transpose[ { Range[ Length[ quotients ] ], quotients } ] ] ] ] & /@ meanVolumes;
 ```
 
-```wolfram
-GraphicsRow[{ListLinePlot[MapIndexed[If[AssociationQ[#1], {First[#2], #1["Dimension"]}, Nothing] &, dimensionCurvature], PlotStyle -> StandardBlue, Mesh -> All, IntervalMarkers -> "Bars", IntervalMarkersStyle -> StandardBlue, Frame -> True, FrameLabel -> {"Generation", "Dimension"}], ListLinePlot[MapIndexed[If[AssociationQ[#1], {First[#2], #1["ScalarCurvature"]}, Nothing] &, dimensionCurvature], PlotStyle -> StandardPurple, Mesh -> All, IntervalMarkers -> "Bars", IntervalMarkersStyle -> StandardPurple, Frame -> True, FrameLabel -> {"Generation", "Curvature"}]}, ImageSize -> 640]
+```wolfram eval
+GraphicsRow[ { ListLinePlot[ MapIndexed[ If[ AssociationQ[ #1 ], { First[ #2 ], #1[ "Dimension" ] }, Nothing ] &, dimensionCurvature ], PlotStyle -> StandardBlue, Mesh -> All, IntervalMarkers -> "Bars", IntervalMarkersStyle -> StandardBlue, Frame -> True, FrameLabel -> { "Generation", "Dimension" } ], ListLinePlot[ MapIndexed[ If[ AssociationQ[ #1 ], { First[ #2 ], #1[ "ScalarCurvature" ] }, Nothing ] &, dimensionCurvature ], PlotStyle -> StandardPurple, Mesh -> All, IntervalMarkers -> "Bars", IntervalMarkersStyle -> StandardPurple, Frame -> True, FrameLabel -> { "Generation", "Curvature" } ] }, ImageSize -> 640 ]
 ```
 
 ## Vertex and Edge Count and Diameter
 
-```wolfram
-With[{vc = VertexCount /@ graphs, ec = Length /@ states, dia = (Length[#] - 1 &) /@ ballVolumes}, GraphicsRow[{ListLinePlot[vc, PlotStyle -> Directive[AbsoluteThickness[2], StandardBrown], Mesh -> All, Frame -> True, FrameLabel -> {"Generation", "Vertices"}], ListLinePlot[ec, PlotStyle -> Directive[AbsoluteThickness[2], StandardRed], Mesh -> All, Frame -> True, FrameLabel -> {"Generation", "Edges"}], ListLinePlot[dia, PlotStyle -> Directive[AbsoluteThickness[2], StandardOrange], Mesh -> All, Frame -> True, FrameLabel -> {"Generation", "Diameter"}], ListLinePlot[DeleteCases[Table[If[dia[[i]] > 1, {i, Log[vc[[i]]]/Log[dia[[i]]]}, Null], {i, Length[vc]}], Null], PlotStyle -> Directive[AbsoluteThickness[2], StandardBlue], Mesh -> All, Frame -> True, FrameLabel -> {"Generation", "Global Dimension"}]}, ImageSize -> 900]]
+```wolfram eval
+With[ { vertexCounts = VertexCount /@ graphs, edgeCounts = Length /@ states, diameters = ( Length[ # ] - 1 & ) /@ ballVolumes }, GraphicsRow[ { ListLinePlot[ vertexCounts, PlotStyle -> Directive[ AbsoluteThickness[ 2 ], StandardBrown ], Mesh -> All, Frame -> True, FrameLabel -> { "Generation", "Vertices" } ], ListLinePlot[ edgeCounts, PlotStyle -> Directive[ AbsoluteThickness[ 2 ], StandardRed ], Mesh -> All, Frame -> True, FrameLabel -> { "Generation", "Edges" } ], ListLinePlot[ diameters, PlotStyle -> Directive[ AbsoluteThickness[ 2 ], StandardOrange ], Mesh -> All, Frame -> True, FrameLabel -> { "Generation", "Diameter" } ] }, ImageSize -> 720 ] ]
+```
+
+Global graph-dimension estimate log V / log R from the radius scale, where R = D/2 is half the diameter.
+
+```wolfram eval
+With[ { vertexCounts = VertexCount /@ graphs, radii = ( ( Length[ # ] - 1 )/2 & ) /@ ballVolumes }, ListLinePlot[ DeleteCases[ Table[ If[ radii[[ i ]] > 1, { i, Log[ vertexCounts[[ i ]] ] / Log[ radii[[ i ]] ] }, Null ], { i, Length[ vertexCounts ] } ], Null ], PlotStyle -> Directive[ AbsoluteThickness[ 2 ], StandardBlue ], Mesh -> All, Frame -> True, FrameLabel -> { "Generation", "Global Dimension" }, ImageSize -> 460, PlotRange -> All ] ]
 ```
 
 ## Dimension-Curvature Stability
 
-```wolfram
-With[{tt = Select[MapIndexed[If[AssociationQ[#1], {First[#2], #1["Dimension"] /. Around[a_, _] :> a, #1["ScalarCurvature"] /. Around[a_, _] :> a, VertexCount[graphs[[First[#2]]]]}, Nothing] &, dimensionCurvature], NumericQ[#[[2]]] && NumericQ[#[[3]]] &]}, With[{pts = tt[[All, {2, 3}]], gens = tt[[All, 1]], cols = Blend[{StandardGray, StandardRed}, #] & /@ Rescale[tt[[All, 4]]]}, GraphicsRow[{Graphics[{Arrowheads[{{0.05, 0.5}}], Table[{cols[[i + 1]], Arrow[{pts[[i]], pts[[i + 1]]}]}, {i, Length[pts] - 1}], PointSize[0.015], Table[{cols[[i]], Point[pts[[i]]]}, {i, Length[pts]}], Black, Table[Text[Style[gens[[i]], 10], pts[[i]], {-1.3, -1.3}], {i, Length[pts]}]}, Frame -> True, FrameLabel -> {"Dimension", "Curvature"}, Background -> White, PlotLabel -> "Geometry Trajectory"], ListLinePlot[Table[Max[EuclideanDistance @@@ Subsets[pts[[n0 ;;]], {2}]], {n0, 1, Length[pts] - 1}], Mesh -> All, PlotStyle -> Directive[StandardYellow, AbsoluteThickness[2]], Frame -> True, FrameLabel -> {"N0", "Tail Diameter"}, PlotLabel -> "Cauchy Tail"]}, ImageSize -> 720]]]
+```wolfram eval
+With[ { trajectory = Select[ MapIndexed[ If[ AssociationQ[ #1 ], { First[ #2 ], #1[ "Dimension" ] /. Around[ a_, _ ] :> a, #1[ "ScalarCurvature" ] /. Around[ a_, _ ] :> a, VertexCount[ graphs[[ First[ #2 ] ]] ] }, Nothing ] &, dimensionCurvature ], NumericQ[ #[[ 2 ]] ] && NumericQ[ #[[ 3 ]] ] & ] }, With[ { points = trajectory[[ All, { 2, 3 } ]], generations = trajectory[[ All, 1 ]], colors = Blend[ { StandardGray, StandardRed }, # ] & /@ Rescale[ trajectory[[ All, 4 ]] ] }, GraphicsRow[ { Graphics[ { Arrowheads[ { { 0.05, 0.5 } } ], Table[ { colors[[ i + 1 ]], Arrow[ { points[[ i ]], points[[ i + 1 ]] } ] }, { i, Length[ points ] - 1 } ], PointSize[ 0.015 ], Table[ { colors[[ i ]], Point[ points[[ i ]] ] }, { i, Length[ points ] } ], Black, Table[ Text[ Style[ generations[[ i ]], 10 ], points[[ i ]], { -1.3, -1.3 } ], { i, Length[ points ] } ] }, Frame -> True, FrameLabel -> { "Dimension", "Curvature" }, Background -> White, PlotLabel -> "Geometry Trajectory" ], ListLinePlot[ Table[ Max[ EuclideanDistance @@@ Subsets[ points[[ n0 ;; ]], { 2 } ] ], { n0, 1, Length[ points ] - 1 } ], Mesh -> All, PlotStyle -> Directive[ StandardYellow, AbsoluteThickness[ 2 ] ], Frame -> True, FrameLabel -> { Subscript[ n, 0 ], "Tail Diameter" }, PlotLabel -> "Cauchy Tail" ] }, ImageSize -> 720 ] ] ]
 ```

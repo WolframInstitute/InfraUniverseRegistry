@@ -2,13 +2,15 @@
 (* Build the raw data: evolve every registry rule and measure the averaged ball-volume growth.
    Writes Data/AverageVolumeGrowths.wxf :: <|id -> <|Growths, VertexCounts, EdgeCounts,
    Diameters, FinalState|>|>. Volumes are computed generation-by-generation and kept for every
-   generation that fits the per-generation time cap; heavy rules are kept Partial. Geometry is the
-   WolframInstitute`Infrageometry` paclet (Hypergraph2Section + BallVolumes "Counting"); the per-radius
+   generation that fits the per-generation time cap; heavy rules are kept Partial. Geometry is
+   WolframInstitute`DiscreteGeometry` (Hypergraph2Section) + WolframInstitute`InfraGeometry`
+   (BallVolumes "Counting"); the per-radius
    value is the geometric mean over centers Exp[MeanAround[Log V]]. Half the cores, atomic saves,
    resumable. Usage: wolframscript -file ComputeVolumeGrowths.wls [nRules] *)
 
 Needs["SetReplace`"];
-Needs["WolframInstitute`Infrageometry`"];
+Needs["WolframInstitute`DiscreteGeometry`"];
+Needs["WolframInstitute`InfraGeometry`"];
 wmd = ResourceFunction["WolframModelData"];
 (* per radius, over centers: geometric mean +- SEM (Exp[MeanAround[Log V]] = exp of the mean of ln V,
    error sigma_lnV/Sqrt[n]) drives the log-difference quotients / dimension-curvature fit; arithmetic
@@ -40,7 +42,7 @@ nRules = If[Length[$ScriptCommandLine] > 1, ToExpression[$ScriptCommandLine[[2]]
 cleanQ[a_] := AssociationQ[a] && (KeyExistsQ[a, "VolumeMeans"] || TrueQ[a["Failed"]]);
 
 nk = Max[2, Floor[$ProcessorCount/2]];
-LaunchKernels[nk]; ParallelEvaluate[Needs["SetReplace`"]; Needs["WolframInstitute`Infrageometry`"]]; DistributeDefinitions[volumes, compute];
+LaunchKernels[nk]; ParallelEvaluate[Needs["SetReplace`"]; Needs["WolframInstitute`DiscreteGeometry`"]; Needs["WolframInstitute`InfraGeometry`"]]; DistributeDefinitions[volumes, compute];
 allids = If[nRules === All, wmd[], wmd[][[ ;; UpTo[nRules] ]]];
 todo = Select[allids, ! cleanQ[data[#]] &];
 Print["[", DateString["ISODateTime"], "] ", Length@allids, " rules, to compute: ", Length@todo, "  on ", $KernelCount, " kernels"];
