@@ -1,133 +1,130 @@
 #!/usr/bin/env wolframscript
-(* Generate Notebooks/VolumeGrowth_Table.{nb,md} and _Single.{nb,md}, both fully evaluated
-   (input + output) so they render statically in the Wolfram Cloud without a kernel.
+(* Generate Notebooks/VolumeGrowth_{Table,Single}.nb from the matching .md SOURCE files.
 
-   Table is self-contained: the baked data (exampleRules = fully-formatted display rows for the
-   featured rules; allRules = scalar metrics for every rule) lives in a FOLDED Initialization
-   section at the top, and the display cells (landscape, table, queries) are INLINE code with
-   pre-evaluated output -- no helper functions in the notebook. Single is one rule computed live
-   from the paclet (Hypergraph2Section + BallVolumes + DimensionCurvatureFit). No Code/, no *Init.wl. *)
+   The .md files are the single source of truth: they hold all prose, section structure, and
+   display/analysis code. This script parses them into cells, evaluates the code (so the .nb is
+   fully evaluated and renders statically in the cloud), and injects the things markdown cannot
+   carry -- the Table's baked data blob and every Output cell.
+
+   Markdown conventions (per code fence and heading):
+     ```wolfram             plain Input, not evaluated (e.g. the local rebuild cells)
+     ```wolfram init        InitializationCell, evaluated for side effects, no Output
+     ```wolfram run         evaluated for side effects, plain Input, no Output (setup cells)
+     ```wolfram eval        evaluated; Input (open) + baked Output
+     ```wolfram bake        evaluated; Input (folded) + baked Output
+     ```wolfram inject:KEY  body replaced by the generated text inj[KEY], as an init cell
+     ## Heading {closed}    section wrapped in a Closed (folded) cell group
+
+   Table needs no paclet (self-contained data + core WL); Single loads the paclet via its init cell
+   and computes one rule live (Hypergraph2Section + BallVolumes + DimensionCurvatureFit).
+
+   Usage: wolframscript -file GenerateVolumeGrowthNotebooks.wls [Table|Single]. A Table run is a
+   cache hit (seconds); a Single run does the live wm3382 recompute (minutes). NEVER edit the .nb
+   by hand -- edit the .md and regenerate, or the change is lost on the next run. *)
 
 scriptDir = DirectoryName[$InputFileName];
 root = ParentDirectory[scriptDir];
 nbDir = FileNameJoin[{root, "Notebooks"}];
-
-(* shared generation defs (scalars, thumbnails, formatting -> exampleRules / allRules). The inline
-   landscape code is lifted from the LANDSCAPE-BEGIN/END comment and baked into the notebook cell. *)
 buildScript = FileNameJoin[{scriptDir, "BuildVolumeGrowthTable.wls"}];
+
+target = If[Length[$ScriptCommandLine] > 1, $ScriptCommandLine[[2]], "All"];
+doTable = MatchQ[target, "All" | "Table"];
+doSingle = MatchQ[target, "All" | "Single"];
+
+(* ---------- markdown source -> notebook cells ---------- *)
+(* Triple backtick built from char codes (literal ``` is fragile through some tooling). *)
+bq = FromCharacterCode[96]; tq = bq <> bq <> bq;
+
+parseProse[s_] := Module[{t = StringTrim[s], paras},
+   If[t === "", Return[{}]];
+   paras = StringSplit[t, RegularExpression["\\n[ \\t]*\\n"]];
+   Map[Which[
+      StringStartsQ[#, "# "], item["title", StringTrim @ StringDrop[#, 2], None],
+      StringStartsQ[#, "## "], With[{r = StringTrim @ StringDrop[#, 3]},
+         item["section", StringTrim @ StringReplace[r, "{closed}" -> ""], StringEndsQ[r, "{closed}"]]],
+      StringStartsQ[#, "### "], item["subsection", StringTrim @ StringDrop[#, 4], None],
+      True, item["text", #, None]] &, paras]];
+
+parseSource[md_] := With[
+   {fence = tq ~~ "wolfram" ~~ tag : Shortest[___] ~~ "\n" ~~ b : Shortest[___] ~~ "\n" ~~ tq},
+   Flatten @ Map[If[StringQ[#], parseProse[#], {item["code", #[[1]], StringTrim[#[[2]]]]}] &,
+      StringSplit[md, fence :> codeChunk[b, tag]]]];
+
+groupClosed[items_] := Module[{out = {}, i = 1, n = Length[items], g},
+   While[i <= n,
+    If[MatchQ[items[[i]], item["section", _, True]],
+      g = {items[[i]]}; i++;
+      While[i <= n && ! MatchQ[items[[i]], item["section", _, _] | item["title", _, _]],
+        AppendTo[g, items[[i]]]; i++];
+      AppendTo[out, grp[g]],
+      AppendTo[out, items[[i]]]; i++]];
+   out];
+
+itemCell[item["title", t_, _], _] := {Cell[t, "Title"]};
+itemCell[item["section", t_, _], _] := {Cell[t, "Section"]};
+itemCell[item["subsection", t_, _], _] := {Cell[t, "Subsection"]};
+itemCell[item["text", t_, _], _] := {Cell[t, "Text"]};
+itemCell[item["code", c_, ""], _] := {Cell[BoxData[c], "Input"]};
+itemCell[item["code", c_, "init"], _] := (ToExpression[c]; {Cell[BoxData[c], "Input", InitializationCell -> True]});
+itemCell[item["code", c_, "run"], _] := (ToExpression[c]; {Cell[BoxData[c], "Input"]});
+itemCell[item["code", c_, "eval"], _] := Module[{r = ToExpression[c]},
+   {Cell[BoxData[c], "Input"], Cell[BoxData[ToBoxes[r]], "Output"]}];
+itemCell[item["code", c_, "bake"], _] := Module[{r = ToExpression[c]},
+   {Cell[BoxData[c], "Input", CellOpen -> False], Cell[BoxData[ToBoxes[r]], "Output"]}];
+itemCell[item["code", _, tag_ /; StringStartsQ[tag, "inject:"]], inj_] :=
+   Module[{blob = inj[StringDrop[tag, StringLength["inject:"]]]},
+      ToExpression[blob]; {Cell[BoxData[blob], "Input", InitializationCell -> True]}];
+
+assemble[items_, inj_] := Join @@ Map[
+   Replace[#, {
+      grp[g_] :> {Cell[CellGroupData[Join @@ (itemCell[#, inj] & /@ g), Closed]]},
+      it_ :> itemCell[it, inj]}] &,
+   groupClosed[items]];
+
+buildNotebook[base_, inj_] := Module[{cells},
+   cells = assemble[parseSource[Import[FileNameJoin[{nbDir, base <> ".md"}], "Text"]], inj];
+   Export[FileNameJoin[{nbDir, base <> ".nb"}], Notebook[cells]];
+   Print["wrote ", base, "  (nb ", Round[FileByteCount[FileNameJoin[{nbDir, base <> ".nb"}]]/1.*^6, 0.1], " MB)"]];
+
+(* ---------- Table: compute the data, inject it, bake the display outputs ---------- *)
+If[ doTable,
 Get[buildScript];
-landscapeCode = StringTrim @ First @ StringCases[Import[buildScript, "Text"],
-   "(* LANDSCAPE-BEGIN" ~~ Shortest[___] ~~ "\n" ~~ Shortest[s___] ~~ "LANDSCAPE-END" :> s];
-
-(* Fetch the Single rule's spec up front (fresh kernel): WolframModelData's resource fetch goes
-   flaky after the heavy Table run, so bake the rule + initial condition into the Single init as
-   literals -> self-contained notebook, no late/live lookup. *)
-exId = "wm3382";
-wmSpec = ResourceFunction["WolframModelData"][{exId}, All][[1]];
-
 (* BIG thumbnails for the 20 featured rows: override the small defaults from the build script *)
 thumbOpts = Sequence[ImageSize -> 200, AspectRatio -> 0.8, Frame -> True, PlotRangePadding -> Scaled[0.03],
    ImagePadding -> {{48, 8}, {28, 8}}, Background -> White, BaseStyle -> {FontSize -> 17},
    Mesh -> All, MeshStyle -> Directive[PointSize[0.018], Black]];
-finalStateThumb[rec_] := TimeConstrained[Quiet @ Rasterize[WolframModelPlot[rec["FinalState"], ImageSize -> {UpTo[300], UpTo[300]}], ImageResolution -> 72], 120, dash];
+finalStateThumb[rec_] := TimeConstrained[Quiet @ ImageResize[Rasterize[ResourceFunction["WolframModelPlot"][rec["FinalState"], ImageSize -> 300], ImageResolution -> 72], {UpTo[300], UpTo[300]}], 120, dash];
 
 dataFile = FileNameJoin[{root, "Data", "AverageVolumeGrowths.wxf"}];
 cacheFile = FileNameJoin[{root, "Data", "table.wxf"}];
 raw = Select[Import[dataFile], AssociationQ[#] && KeyExistsQ[#, "Growths"] &];
-(* Local cache: {allRules, exampleRules}. Reused unless the source data or BuildVolumeGrowthTable.wls
-   is newer, so layout-only re-runs skip the heavy recompute (all-rule scalars + featured thumbnails).
+(* Example rules = the first 20 universes from https://www.wolframphysics.org/universes/index.html,
+   in their index order (matches the registry key order). *)
+exampleIds = {"wm11114", "wm1113", "wm1116", "wm1137", "wm1157", "wm1158", "wm1167", "wm1172", "wm1173",
+   "wm1194", "wm1199", "wm121", "wm1218", "wm12518", "wm1268", "wm1271", "wm1277", "wm1295", "wm1316", "wm1321"};
+(* Local cache: {allRules, exampleData}. Reused unless the source data or BuildVolumeGrowthTable.wls
+   is newer, so layout-only re-runs skip the heavy recompute (all-rule scalars + example thumbnails).
    Data/ is gitignored. *)
-{allRules, exampleRules} = If[
+{allRules, exampleData} = If[
    FileExistsQ[cacheFile] && FileDate[cacheFile] > FileDate[dataFile] && FileDate[cacheFile] > FileDate[buildScript],
    Print["table cache hit: ", cacheFile]; Import[cacheFile],
    Print["computing table data (no valid cache) ..."];
-   Module[{all, ranked, top20, ex},
+   Module[{all, ex},
     all = volumeGrowthScalars /@ raw;
-    ranked = ReverseSortBy[Select[Normal[all], NumericQ[#[[2]]["StabilityScore"]] && NumericQ[#[[2]]["Vertices"]] &], (#[[2]]["StabilityScore"] #[[2]]["Vertices"]) &];
-    top20 = ranked[[;; UpTo[20], 1]];
-    Print["featured (largest x most stable): ", top20];
-    ex = buildExampleRules[raw, top20];
+    Print["example rules (first 20 of the universe index): ", exampleIds];
+    ex = buildExampleData[raw, all, exampleIds];
     Export[cacheFile, {all, ex}, "WXF"];
     Print["cached table: ", cacheFile];
     {all, ex}]];
 
 dataBlob = StringRiffle[{
-    "exampleRules = Uncompress[" <> ToString[Compress[exampleRules], InputForm] <> "];",
+    "exampleData = Uncompress[" <> ToString[Compress[exampleData], InputForm] <> "];",
     "allRules = Uncompress[" <> ToString[Compress[allRules], InputForm] <> "];"}, "\n\n"];
 
-tableCode = "Dataset[Values @ exampleRules, Alignment -> {Center, Center}, MaxItems -> {25, All}, ItemStyle -> {FontSize -> 15}, HeaderStyle -> Directive[FontSize -> 15, Bold]]";
-q1 = "Dataset[allRules][Select[NumericQ[#Dimension] && 2.5 <= #Dimension <= 3.5 && Abs[#Curvature] < 0.5 && #Vertices >= 1000 &]]";
-q2 = "Dataset[allRules][Select[#Vertices >= 500 && NumericQ[#StabilityScore] &]][TakeLargestBy[\"StabilityScore\", 25]]";
-q3 = "Dataset[allRules][ReverseSortBy[#StabilityScore Sqrt[#Vertices] &]][;; 25]";
-q4 = "Dataset[allRules][TakeLargestBy[\"DiameterGrowth\", 15]]";
-q0 = "Dataset[allRules][Select[NumericQ[#StabilityScore] && NumericQ[#Vertices] &]][TakeLargestBy[#StabilityScore #Vertices &, 20]]";
+buildNotebook["VolumeGrowth_Table", <|"data" -> dataBlob|>];
+];
 
-(* ---------- emit helpers ---------- *)
-(* display code cells are folded (CellOpen -> False): the cloud shows the pre-evaluated output, the
-   code is one click away. *)
-ioCells[code_, expr_] := {Cell[BoxData[code], "Input", CellOpen -> False], Cell[BoxData[ToBoxes[expr]], "Output"]};
-toMd = Replace[#, {Cell[t_String, "Title"] :> "# " <> t, Cell[t_String, "Section"] :> "## " <> t,
-     Cell[t_String, "Subsection"] :> "### " <> t, Cell[t_String, "Text"] :> t,
-     Cell[BoxData[c_String], "Input", ___] :> "```wolfram\n" <> c <> "\n```",
-     Cell[BoxData[_], "Output"] :> Nothing, Cell[BoxData[_], "Input", ___] :> Nothing}] &;
-flatten = Flatten[{#}] /. Cell[CellGroupData[cs_List, _]] :> Sequence @@ cs &;
-emit[base_, cells_] := (Export[FileNameJoin[{nbDir, base <> ".nb"}], Notebook @ Flatten[{cells}]];
-   Export[FileNameJoin[{nbDir, base <> ".md"}], StringRiffle[DeleteCases[toMd /@ flatten[cells], ""], "\n\n"], "Text"]);
-
-(* ---------- Table: folded data at top, then inline display (no helper functions) ---------- *)
-emit["VolumeGrowth_Table", {
-   Cell["Volume Growth: Table", "Title"],
-   Cell[CellGroupData[{
-      Cell["Initialization", "Section"],
-      Cell[BoxData[dataBlob], "Input", InitializationCell -> True]}, Closed]],
-   Cell["Dimension-Curvature Landscape", "Section"],
-   ioCells[landscapeCode, ToExpression[landscapeCode]],
-   Cell["Featured Rules", "Section"],
-   ioCells[tableCode, ToExpression[tableCode]],
-   Cell["Queries", "Section"],
-   Cell["Over all rules' scalar metrics (not just the example rows).", "Text"],
-   Cell["Dataset[allRules][TakeLargestBy[StabilityScore \[Times] Vertices, 20]]  (Featured Rules)", "Subsection"], ioCells[q0, ToExpression[q0]],
-   Cell["Dimension 2.5-3.5, near-flat curvature, at least 1000 vertices.", "Subsection"], ioCells[q1, ToExpression[q1]],
-   Cell["Most converged large rules.", "Subsection"], ioCells[q2, ToExpression[q2]],
-   Cell["Recommended ranking: stability score times sqrt(vertices).", "Subsection"], ioCells[q3, ToExpression[q3]],
-   Cell["Fastest-expanding rules (by diameter growth).", "Subsection"], ioCells[q4, ToExpression[q4]]}];
-Print["wrote VolumeGrowth_Table  (nb ", Round[FileByteCount[FileNameJoin[{nbDir, "VolumeGrowth_Table.nb"}]]/1.*^6, 0.1], " MB)"];
-
-(* ---------- Single: fully evaluated; geometry + fit from the paclet, dynamics from WFR ---------- *)
-singleInit = "Needs[ \"WolframInstitute`Infrageometry`\" ];
-
-ruleName = \"wm3382\";
-
-states = Rest @ ResourceFunction[ \"WolframModel\" ][ " <> ToString[wmSpec["Rule"], InputForm] <> ", " <> ToString[wmSpec["InitialCondition"], InputForm] <> ",
-    <| \"MaxGenerations\" -> 14, \"MaxVertices\" -> 5000, \"MaxEvents\" -> 100000 |> ][ \"StatesList\" ];
-
-graphs = Hypergraph2Section /@ states;";
-
-ballSetup = "ballValues = With[ { vols = BallVolumes[ #, All, All, \"Measure\" -> \"Counting\" ] },
-     Transpose[ PadRight[ #, Max[ Length /@ vols ], Last[ # ] ] & /@ vols ] ] & /@ graphs;
-
-ballVolumes = Map[ Around[ Mean[ # ], StandardDeviation[ # ] ] &, ballValues, { 2 } ];";
-
-meanSetup = "meanVolumes = Map[ Exp[ MeanAround[ Log[ # ] ] ] &, ballValues, { 2 } ];";
-
-dimSetup = "dimensionCurvature = With[ { quotients = LogDifferenceQuotients[ # ] }, If[ Length[ quotients ] < 2, Missing[], DimensionCurvatureFit[ Transpose[ { Range[ Length[ quotients ] ], quotients } ] ] ] ] & /@ meanVolumes;";
-
-ToExpression /@ {singleInit, ballSetup, meanSetup, dimSetup};
-
-exGraphs = "GraphicsGrid[ Partition[ ResourceFunction[ \"WolframModelPlot\" ][ #, ImageSize -> { UpTo[ 120 ], UpTo[ 120 ] } ] & /@ states, UpTo[ 5 ] ] ]";
-exVolumes = "ListLinePlot[ ballVolumes, PlotStyle -> ( Directive[ AbsoluteThickness[ 2 ], # ] & /@ ( Blend[ { StandardYellow, StandardRed }, # ] & /@ Subdivide[ 0., 1., Max[ Length[ ballVolumes ] - 1, 1 ] ] ) ), IntervalMarkers -> \"Bars\", Mesh -> All, Frame -> True, FrameLabel -> { \"Radius\", \"Ball Volume\" }, ImageSize -> 460, PlotRange -> All ]";
-exLDQ = "ListLinePlot[ LogDifferenceQuotients /@ meanVolumes, PlotStyle -> ( Directive[ AbsoluteThickness[ 2 ], # ] & /@ ( Blend[ { StandardYellow, StandardGreen }, # ] & /@ Subdivide[ 0., 1., Max[ Length[ meanVolumes ] - 1, 1 ] ] ) ), IntervalMarkers -> \"Bars\", Mesh -> All, Frame -> True, FrameLabel -> { \"Radius\", \"Log Difference Quotient\" }, ImageSize -> 460, PlotRange -> All ]";
-exDimCurv = "GraphicsRow[ { ListLinePlot[ MapIndexed[ If[ AssociationQ[ #1 ], { First[ #2 ], #1[ \"Dimension\" ] }, Nothing ] &, dimensionCurvature ], PlotStyle -> StandardBlue, Mesh -> All, IntervalMarkers -> \"Bars\", IntervalMarkersStyle -> StandardBlue, Frame -> True, FrameLabel -> { \"Generation\", \"Dimension\" } ], ListLinePlot[ MapIndexed[ If[ AssociationQ[ #1 ], { First[ #2 ], #1[ \"ScalarCurvature\" ] }, Nothing ] &, dimensionCurvature ], PlotStyle -> StandardPurple, Mesh -> All, IntervalMarkers -> \"Bars\", IntervalMarkersStyle -> StandardPurple, Frame -> True, FrameLabel -> { \"Generation\", \"Curvature\" } ] }, ImageSize -> 640 ]";
-exVertexEdgeDiam = "With[ { vertexCounts = VertexCount /@ graphs, edgeCounts = Length /@ states, diameters = ( Length[ # ] - 1 & ) /@ ballVolumes }, GraphicsRow[ { ListLinePlot[ vertexCounts, PlotStyle -> Directive[ AbsoluteThickness[ 2 ], StandardBrown ], Mesh -> All, Frame -> True, FrameLabel -> { \"Generation\", \"Vertices\" } ], ListLinePlot[ edgeCounts, PlotStyle -> Directive[ AbsoluteThickness[ 2 ], StandardRed ], Mesh -> All, Frame -> True, FrameLabel -> { \"Generation\", \"Edges\" } ], ListLinePlot[ diameters, PlotStyle -> Directive[ AbsoluteThickness[ 2 ], StandardOrange ], Mesh -> All, Frame -> True, FrameLabel -> { \"Generation\", \"Diameter\" } ], ListLinePlot[ DeleteCases[ Table[ If[ diameters[[ i ]] > 1, { i, Log[ vertexCounts[[ i ]] ] / Log[ diameters[[ i ]] ] }, Null ], { i, Length[ vertexCounts ] } ], Null ], PlotStyle -> Directive[ AbsoluteThickness[ 2 ], StandardBlue ], Mesh -> All, Frame -> True, FrameLabel -> { \"Generation\", \"Global Dimension\" } ] }, ImageSize -> 900 ] ]";
-exStabilityRow = "With[ { trajectory = Select[ MapIndexed[ If[ AssociationQ[ #1 ], { First[ #2 ], #1[ \"Dimension\" ] /. Around[ a_, _ ] :> a, #1[ \"ScalarCurvature\" ] /. Around[ a_, _ ] :> a, VertexCount[ graphs[[ First[ #2 ] ]] ] }, Nothing ] &, dimensionCurvature ], NumericQ[ #[[ 2 ]] ] && NumericQ[ #[[ 3 ]] ] & ] }, With[ { points = trajectory[[ All, { 2, 3 } ]], generations = trajectory[[ All, 1 ]], colors = Blend[ { StandardGray, StandardRed }, # ] & /@ Rescale[ trajectory[[ All, 4 ]] ] }, GraphicsRow[ { Graphics[ { Arrowheads[ { { 0.05, 0.5 } } ], Table[ { colors[[ i + 1 ]], Arrow[ { points[[ i ]], points[[ i + 1 ]] } ] }, { i, Length[ points ] - 1 } ], PointSize[ 0.015 ], Table[ { colors[[ i ]], Point[ points[[ i ]] ] }, { i, Length[ points ] } ], Black, Table[ Text[ Style[ generations[[ i ]], 10 ], points[[ i ]], { -1.3, -1.3 } ], { i, Length[ points ] } ] }, Frame -> True, FrameLabel -> { \"Dimension\", \"Curvature\" }, Background -> White, PlotLabel -> \"Geometry Trajectory\" ], ListLinePlot[ Table[ Max[ EuclideanDistance @@@ Subsets[ points[[ n0 ;; ]], { 2 } ] ], { n0, 1, Length[ points ] - 1 } ], Mesh -> All, PlotStyle -> Directive[ StandardYellow, AbsoluteThickness[ 2 ] ], Frame -> True, FrameLabel -> { \"N0\", \"Tail Diameter\" }, PlotLabel -> \"Cauchy Tail\" ] }, ImageSize -> 720 ] ] ]";
-
-emit["VolumeGrowth_Single", {
-   Cell["Volume Growth: Single Rule", "Title"],
-   Cell[CellGroupData[{Cell["Initialization", "Section"], Cell[BoxData @ singleInit, "Input", InitializationCell -> True]}, Closed]],
-   Cell["Generations", "Section"], ioCells[exGraphs, ToExpression[exGraphs]],
-   Cell["Volume Growth", "Section"], Cell["Pointwise volume growth (mean \[PlusMinus] \[Sigma]).", "Text"], Cell[BoxData @ ballSetup, "Input"], ioCells[exVolumes, ToExpression[exVolumes]],
-   Cell["Log Difference Quotients", "Section"], Cell["Log-difference quotient of the mean volume growth (mean \[PlusMinus] \[Sigma]/Sqrt[vertex count]).", "Text"], Cell[BoxData @ meanSetup, "Input"], ioCells[exLDQ, ToExpression[exLDQ]],
-   Cell["Dimension and Curvature", "Section"], Cell["Dimension and curvature from the mean volume growth.", "Text"], Cell[BoxData @ dimSetup, "Input"], ioCells[exDimCurv, ToExpression[exDimCurv]],
-   Cell["Vertex and Edge Count and Diameter", "Section"], ioCells[exVertexEdgeDiam, ToExpression[exVertexEdgeDiam]],
-   Cell["Dimension-Curvature Stability", "Section"], ioCells[exStabilityRow, ToExpression[exStabilityRow]]}];
-Print["wrote VolumeGrowth_Single  (nb ", Round[FileByteCount[FileNameJoin[{nbDir, "VolumeGrowth_Single.nb"}]]/1.*^6, 0.1], " MB)"];
+(* ---------- Single: paclet + live recompute, all driven by the .md ---------- *)
+If[ doSingle,
+buildNotebook["VolumeGrowth_Single", <||>];
+];

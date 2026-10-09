@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Wolfram__ReadNotebook",
+      "mcp__arxiv-latex-mcp__get_paper_section",
+      "mcp__arxiv-latex-mcp__get_paper_abstract",
+      "mcp__arxiv-latex-mcp__list_paper_sections"
+    ]
+  }
+}
