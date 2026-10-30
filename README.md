@@ -10,6 +10,11 @@ This project maps the **infrageometric landscape** of the [Wolfram Notable Unive
 
 * **Ball Volume Growth**: [Dimension and Curvature Landscape](https://www.wolframcloud.com/obj/hajek_pavel/InfraUniverseRegistry/VolumeGrowth), [Single Rule Ball Volume Growth](https://www.wolframcloud.com/obj/hajek_pavel/InfraUniverseRegistry/VolumeGrowthSingle).
 
+## 🙏 Funding
+
+Pavel Hájek's work on this repository was supported by the John Templeton Foundation grant 63655, [Causality, Observers and Computation: A New Approach to Fundamental Physics and Metamathematics](https://www.templeton.org/grant/causality-observers-and-computation-a-new-approach-to-fundamental-physics-and-metamathematics) at the Wolfram Institute. The opinions expressed are those of the author and do not necessarily reflect the views of the John Templeton Foundation.
+
 ## 📄 Licence
 
-MIT
+- Code: [MIT](LICENSE)
+- Mathematical content (notebooks, papers, notes, figures): [CC BY 4.0](LICENSE-CC-BY-4.0)
