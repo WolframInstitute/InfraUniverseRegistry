@@ -9,11 +9,11 @@ paths below.
 
 | Paclet | Repo, relative to this one | Paclet dir inside it |
 |---|---|---|
-| DiscreteGeometry | `../../SubProjectsMain/DiscreteGeometry/` | `DiscreteGeometry/DiscreteGeometry/` |
-| InfraGeometry | `../../SubProjectsMain/InfraGeometry/` | `InfraGeometry/InfraGeometry/` |
-| InfraAnalysis | `../../SubProjectsOther/InfraAnalysis/` | `InfraAnalysis/InfraAnalysis/` |
-| InfraCausality | `../../SubProjectsOther/InfraCausality/` | `InfraCausality/InfraCausality/` |
-| InfraGaugeTheory | `../../SubProjectsOther/InfraGaugeTheory/` | `InfraGaugeTheory/` |
+| DiscreteGeometry | `../DiscreteGeometry/` | `DiscreteGeometry/DiscreteGeometry/` |
+| InfraGeometry | `../../InfraGeometry/` | `InfraGeometry/InfraGeometry/` |
+| InfraAnalysis | `../InfraAnalysis/` | `InfraAnalysis/InfraAnalysis/` |
+| InfraCausality | `../InfraCausality/` | `InfraCausality/InfraCausality/` |
+| InfraGaugeTheory | `../InfraGaugeTheory/` | `InfraGaugeTheory/` |
 | InfraElements | `../InfraElements/` | — *public paclet repo directly, no `Dev` wrapper* |
 
 To use another paclet, prefer the **installed** copy — all of them are in
@@ -27,7 +27,7 @@ Reach for a dev checkout only when you need changes that are not published yet, 
 point at the sibling path rather than copying it here:
 
 ```wolfram
-PacletDirectoryLoad @ FileNameJoin[ { $repoRoot, "..", "..", "SubProjectsMain", "DiscreteGeometry", "DiscreteGeometry" } ]
+PacletDirectoryLoad @ FileNameJoin[ { $repoRoot, "..", "DiscreteGeometry", "DiscreteGeometry" } ]
 ```
 
 Horizontal infrageometric study across the Wolfram notable-universe registry (~947 rules):
@@ -36,7 +36,7 @@ and a geometric Stability Score. Research/exploratory code. The project is **onl
 and notebooks** — no `Code/` dir, no `.wl` library files; reusable geometry comes from
 `WolframInstitute`DiscreteGeometry`` (`Hypergraph2Section`) and `WolframInstitute`InfraGeometry``
 (`BallVolumes`, `LogDifferenceQuotients`, `DimensionCurvatureFit` — moved out of `Infrageometry`
-in the [PacletSplit](../../SubProjectsMain/InfraGeometry/Work/Active/PacletSplit.md)). Layout:
+in the [PacletSplit](../../InfraGeometry/Work/Active/PacletSplit.md)). Layout:
 
 - `Scripts/`
   - `ComputeVolumeGrowths.wls` — evolve every rule (`WolframModel`), measure the averaged
